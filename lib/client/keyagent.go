@@ -267,11 +267,16 @@ func (a *LocalKeyAgent) CheckHostSignature(addr string, remote net.Addr, key ssh
 	}
 	err := certChecker.CheckHostKey(addr, remote, key)
 	if err != nil {
+		a.log.Debugf("Host validation failed: %v.", err)
 		return trace.Wrap(err)
 	}
+	a.log.Debugf("Validated host %v.", addr)
 	return nil
 }
 
+// checkHostCertificate validates a host certificate. First checks the
+// ~/.tsh/known_hosts cache and if not found, prompts the user to accept
+// or reject.
 func (a *LocalKeyAgent) checkHostCertificate(key ssh.PublicKey, addr string) bool {
 	// Check the local cache (where all Teleport CAs are placed upon login) to
 	// see if any of them match.
@@ -295,6 +300,9 @@ func (a *LocalKeyAgent) checkHostCertificate(key ssh.PublicKey, addr string) boo
 	return true
 }
 
+// checkHostCertificate validates a host key. First checks the
+// ~/.tsh/known_hosts cache and if not found, prompts the user to accept
+// or reject.
 func (a *LocalKeyAgent) checkHostKey(addr string, remote net.Addr, key ssh.PublicKey) error {
 	var err error
 
@@ -326,6 +334,7 @@ func (a *LocalKeyAgent) checkHostKey(addr string, remote net.Addr, key ssh.Publi
 	return nil
 }
 
+// defaultHostPromptFunc is the default host key/certificates prompt.
 func (a *LocalKeyAgent) defaultHostPromptFunc(host string, key ssh.PublicKey) error {
 	userAnswer := "no"
 	if !a.noHosts[host] {
