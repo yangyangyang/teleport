@@ -29,6 +29,7 @@ import (
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/srv/forward"
+	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/utils/proxy"
 
 	"github.com/gravitational/trace"
@@ -163,10 +164,25 @@ func (s *localSite) DialTCP(from net.Addr, to net.Addr) (net.Conn, error) {
 }
 
 func (s *localSite) dialWithAgent(from net.Addr, to net.Addr, userAgent agent.Agent) (net.Conn, error) {
-	s.log.Debugf("Dialing with an agent from %v to %v", from, to)
+	s.log.Debugf("Dialing with an agent from %v to %v.", from, to)
 
-	// get a host certificate for the forwarding node from the cache
-	hostCertificate, err := s.certificateCache.GetHostCertificate(to.String())
+	addr := to.String()
+	principals := []string{to.String()}
+
+	// Check to see if a raw address was packed into the net.Addr and if so,
+	// add it to the list of principals.
+	if toAddr, ok := to.(*utils.NetAddr); ok {
+		host, _, err := net.SplitHostPort(toAddr.Raw)
+		if err != nil {
+			s.log.Debugf("Unable to parse raw address '%v': %v.", toAddr.Raw, err)
+		} else {
+			addr = host
+			principals = append(principals, host)
+		}
+	}
+
+	// Get a host certificate for the forwarding node from the cache.
+	hostCertificate, err := s.certificateCache.GetHostCertificate(addr, principals)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}

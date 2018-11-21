@@ -1508,11 +1508,14 @@ func (process *TeleportProcess) getAdditionalPrincipals(role teleport.Role) ([]s
 	case teleport.RoleAuth, teleport.RoleAdmin:
 		addrs = process.Config.Auth.PublicAddrs
 	case teleport.RoleNode:
-		advertiseIP, err := utils.ParseAddr(process.Config.AdvertiseIP)
-		if err != nil {
-			return nil, trace.Wrap(err)
+		addrs = process.Config.SSH.PublicAddrs
+		if process.Config.AdvertiseIP != "" {
+			advertiseIP, err := utils.ParseAddr(process.Config.AdvertiseIP)
+			if err != nil {
+				return nil, trace.Wrap(err)
+			}
+			addrs = append(addrs, *advertiseIP)
 		}
-		addrs = append(process.Config.SSH.PublicAddrs, *advertiseIP)
 	}
 	for _, addr := range addrs {
 		host, err := utils.Host(addr.Addr)

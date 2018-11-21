@@ -27,15 +27,20 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// NetAddr is network address that includes network, optional path and
-// host port
+// NetAddr is network address that includes address, network, (optionally)
+// path, and (optionally) the raw address.
 type NetAddr struct {
 	// Addr is the host:port address, like "localhost:22"
 	Addr string `json:"addr"`
+
 	// AddrNetwork is the type of a network socket, like "tcp" or "unix"
 	AddrNetwork string `json:"network,omitempty"`
+
 	// Path is a socket file path, like '/var/path/to/socket' in "unix:///var/path/to/socket"
 	Path string `json:"path,omitempty"`
+
+	// Raw is the raw address before any parsing and DNS resolution.
+	Raw string `json:"raw,omitempty"`
 }
 
 // Host returns host part of address without port

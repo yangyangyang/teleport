@@ -592,10 +592,28 @@ func (s *remoteSite) DialTCP(from, to net.Addr) (net.Conn, error) {
 }
 
 func (s *remoteSite) dialWithAgent(from, to net.Addr, userAgent agent.Agent) (net.Conn, error) {
-	s.Debugf("Dialing with an agent from %v to %v", from, to)
+	s.Debugf("Dialing with an agent from %v to %v.", from, to)
 
-	// get a host certificate for the forwarding node from the cache
-	hostCertificate, err := s.certificateCache.GetHostCertificate(to.String())
+	addr := to.String()
+	hostt, _, _ := net.SplitHostPort(to.String())
+	principals := []string{hostt}
+
+	// Check to see if a raw address was packed into the net.Addr and if so,
+	// add it to the list of principals.
+	if toAddr, ok := to.(*utils.NetAddr); ok {
+		host, _, err := net.SplitHostPort(toAddr.Raw)
+		if err != nil {
+			s.Debugf("Unable to parse raw address '%v': %v.", toAddr.Raw, err)
+		} else {
+			addr = host
+			principals = append(principals, host)
+		}
+	}
+
+	fmt.Printf("--> dialWithAgent: addr=%v, principals=%v.\n", addr, principals)
+
+	// Get a host certificate for the forwarding node from the cache.
+	hostCertificate, err := s.certificateCache.GetHostCertificate(addr, principals)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
