@@ -128,15 +128,16 @@ func IsGroupMember(gid int) (bool, error) {
 	return false, nil
 }
 
-// Host extracts host from host:port string
-func Host(hostname string) (string, error) {
-	if hostname == "" {
-		return "", trace.BadParameter("missing parameter hostname")
+// Host extracts host from host:port string. If no port is provided, the
+// hostname is returned as-is.
+func Host(addr string) (string, error) {
+	if addr == "" {
+		return "", trace.BadParameter("missing parameter addr")
 	}
-	host, _, err := SplitHostPort(hostname)
+	host, _, err := SplitHostPort(addr)
 	if err != nil {
 		if strings.Contains(err.Error(), "missing port in address") {
-			return hostname, nil
+			return addr, nil
 		}
 		return "", trace.Wrap(err)
 	}

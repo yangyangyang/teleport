@@ -312,46 +312,60 @@ func IsLoopback(host string) bool {
 	return false
 }
 
-func isIPv6(ip net.IP) bool {
-	return ip != nil && strings.Contains(ip.String(), ":")
-}
-
+// EnumerateHostIPs returns a slice of all the IPs on the host.
 func EnumerateHostIPs() ([]NetAddr, error) {
 	netAddrs := make([]NetAddr, 0)
 
-	ifaces, err := net.Interfaces()
+	// Enumerate all interfaces on the host.
+	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
+	for _, face := range interfaces {
+		// For each interface, enumerate all addresses on the interface.
+		addrs, err := face.Addrs()
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-
 		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			default:
-				return nil, trace.BadParameter("unknown addr type: %T", addr)
+			// Convert from CIDR format to an IP address. For example
+			// "127.0.0.1/8" to "127.0.0.1".
+			ipAddr, err := cidrToAddr(addr)
+			if err != nil {
+				return nil, trace.Wrap(err)
 			}
-
-			haddr := ip.String()
-			if isIPv6(ip) {
-				haddr = fmt.Sprintf("[%v]", ip.String())
-			}
-
 			netAddrs = append(netAddrs, NetAddr{
-				Addr:        haddr,
+				Addr:        ipAddr,
 				AddrNetwork: "tcp",
 			})
 		}
 	}
 	return netAddrs, nil
+}
+
+// cidrToAddr converts net.Addr in CIDR format to an address string.
+func cidrToAddr(addr net.Addr) (string, error) {
+	// Extract IP from CIDR form.
+	var ip net.IP
+	switch v := addr.(type) {
+	case *net.IPNet:
+		ip = v.IP
+	case *net.IPAddr:
+		ip = v.IP
+	default:
+		return "", trace.BadParameter("unknown addr type: %T", addr)
+	}
+
+	// Literal IPv6 addresses need to be surrounded by brackets.
+	if isIPv6(ip) {
+		return "[" + ip.String() + "]", nil
+	}
+	return ip.String(), nil
+}
+
+// isIPv6 returns true if the net.IP is a IPv6 address.
+func isIPv6(ip net.IP) bool {
+	return ip != nil && strings.Contains(ip.String(), ":")
 }
 
 // GuessIP tries to guess an IP address this machine is reachable at on the
