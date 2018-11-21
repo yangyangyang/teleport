@@ -133,11 +133,14 @@ func Host(hostname string) (string, error) {
 	if hostname == "" {
 		return "", trace.BadParameter("missing parameter hostname")
 	}
-	if !strings.Contains(hostname, ":") {
-		return hostname, nil
-	}
 	host, _, err := SplitHostPort(hostname)
-	return host, err
+	if err != nil {
+		if strings.Contains(err.Error(), "missing port in address") {
+			return hostname, nil
+		}
+		return "", trace.Wrap(err)
+	}
+	return host, nil
 }
 
 // SplitHostPort splits host and port and checks that host is not empty

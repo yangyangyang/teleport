@@ -131,7 +131,7 @@ func (a *NetAddr) UnmarshalYAML(unmarshal func(interface{}) error) error {
 func (a *NetAddr) Set(s string) error {
 	v, err := ParseAddr(s)
 	if err != nil {
-		return err
+		return trace.Wrap(err)
 	}
 	a.Addr = v.Addr
 	a.AddrNetwork = v.AddrNetwork
@@ -310,6 +310,48 @@ func IsLoopback(host string) bool {
 		}
 	}
 	return false
+}
+
+func isIPv6(ip net.IP) bool {
+	return ip != nil && strings.Contains(ip.String(), ":")
+}
+
+func EnumerateHostIPs() ([]NetAddr, error) {
+	netAddrs := make([]NetAddr, 0)
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			default:
+				return nil, trace.BadParameter("unknown addr type: %T", addr)
+			}
+
+			haddr := ip.String()
+			if isIPv6(ip) {
+				haddr = fmt.Sprintf("[%v]", ip.String())
+			}
+
+			netAddrs = append(netAddrs, NetAddr{
+				Addr:        haddr,
+				AddrNetwork: "tcp",
+			})
+		}
+	}
+	return netAddrs, nil
 }
 
 // GuessIP tries to guess an IP address this machine is reachable at on the

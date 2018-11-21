@@ -212,6 +212,8 @@ func (k *Keygen) GenerateHostCert(c services.HostCertParams) ([]byte, error) {
 		return nil, trace.Wrap(err)
 	}
 
+	log.Debugf("Generated SSH host certificate for '%v' with role '%v' and principals: %v.",
+		c.NodeName, c.Roles, principals)
 	return ssh.MarshalAuthorizedKey(cert), nil
 }
 
