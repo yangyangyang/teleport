@@ -305,7 +305,6 @@ func (t *proxySubsys) proxyToHost(
 		AddrNetwork: "tcp",
 		Raw:         net.JoinHostPort(t.host, t.port),
 	}
-	fmt.Printf("--> Packing raw address into utils.NetAddr: %v.\n", t.host)
 
 	// Pass the agent along to the site. If the proxy is in recording mode, this
 	// agent is used to perform user authentication.
