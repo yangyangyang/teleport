@@ -358,7 +358,7 @@ func cidrToAddr(addr net.Addr) (string, error) {
 
 	// Literal IPv6 addresses need to be surrounded by brackets.
 	if isIPv6(ip) {
-		return "[" + ip.String() + "]", nil
+		return WithBrackets(ip.String()), nil
 	}
 	return ip.String(), nil
 }
@@ -437,4 +437,15 @@ func guessHostIP(addrs []net.Addr) (ip net.IP) {
 		ip = net.IPv4(127, 0, 0, 1)
 	}
 	return ip
+}
+
+func WithBrackets(addr string) string {
+	return fmt.Sprintf("[%v]", addr)
+}
+
+func StripBrackets(addr string) string {
+	if !strings.HasPrefix(addr, "[") || !strings.HasSuffix(addr, "]") {
+		return addr
+	}
+	return addr[1 : len(addr)-1]
 }

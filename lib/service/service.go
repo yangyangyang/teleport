@@ -1531,7 +1531,10 @@ func (process *TeleportProcess) getAdditionalPrincipals(role teleport.Role) ([]s
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		principals = append(principals, host)
+		// IPv6 addresses within a utils.NetAddr are encoded in a URI. This means
+		// they are wrapped in brackets and these brackets need to be removed
+		// before adding to the list of principals.
+		principals = append(principals, utils.StripBrackets(host))
 	}
 	return principals, nil
 }

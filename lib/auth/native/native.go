@@ -191,6 +191,16 @@ func (k *Keygen) GenerateHostCert(c services.HostCertParams) ([]byte, error) {
 	}
 	principals = utils.Deduplicate(principals)
 
+	//var pp []string
+	//for _, ppp := range principals {
+	//	if strings.HasPrefix(ppp, "[") {
+	//		pp = append(pp, ppp[1:len(ppp)-1])
+	//	} else {
+	//		pp = append(pp, ppp)
+	//	}
+	//}
+	//principals = pp
+
 	// create certificate
 	validBefore := uint64(ssh.CertTimeInfinity)
 	if c.TTL != 0 {

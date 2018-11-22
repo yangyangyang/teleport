@@ -1427,6 +1427,7 @@ func (tc *TeleportClient) connectToProxy(ctx context.Context) (*ProxyClient, err
 		var sshClient *ssh.Client
 
 		sshConfig.Auth = []ssh.AuthMethod{m}
+		fmt.Printf("--> proxyAddr: %v\n", proxyAddr)
 		sshClient, err = ssh.Dial("tcp", proxyAddr, sshConfig)
 		if err != nil {
 			if utils.IsHandshakeFailedError(err) {
@@ -1470,6 +1471,7 @@ func (tc *TeleportClient) connectToProxy(ctx context.Context) (*ProxyClient, err
 	// and greatest auth information, try it now
 	sshConfig.Auth = []ssh.AuthMethod{authMethod}
 	sshConfig.User = proxyPrincipal
+	fmt.Printf("--> proxyAddr: %v\n", proxyAddr)
 	sshClient, err := ssh.Dial("tcp", proxyAddr, sshConfig)
 	if err != nil {
 		return nil, trace.Wrap(err)
