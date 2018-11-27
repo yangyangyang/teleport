@@ -96,3 +96,18 @@ func CopyStringMapInterface(a map[string]interface{}) map[string]interface{} {
 
 	return out
 }
+
+// ReplaceInSlice replaces element old in slice with new.
+func ReplaceInSlice(s []string, old string, new string) []string {
+	out := s[:0]
+
+	for _, x := range s {
+		if x == old {
+			out = append(out, new)
+		} else {
+			out = append(out, x)
+		}
+	}
+
+	return out
+}

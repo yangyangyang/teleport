@@ -858,10 +858,15 @@ func (s *APIServer) registerUsingToken(auth ClientI, w http.ResponseWriter, r *h
 	if err := httplib.ReadJSON(r, &req); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
+	// Pass along the remote address the request came from to the registration function.
+	req.RemoteAddr = r.RemoteAddr
+
 	keys, err := auth.RegisterUsingToken(req)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+
 	return keys, nil
 }
 
@@ -886,6 +891,9 @@ func (s *APIServer) generateServerKeys(auth ClientI, w http.ResponseWriter, r *h
 	if err := httplib.ReadJSON(r, &req); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
+	// Pass along the remote address the request came from to the registration function.
+	req.RemoteAddr = r.RemoteAddr
 
 	keys, err := auth.GenerateServerKeys(req)
 	if err != nil {

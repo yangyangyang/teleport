@@ -758,6 +758,8 @@ type GenerateServerKeysRequest struct {
 	// if present will be signed as a return value
 	// otherwise, new public/private key pair will be generated
 	PublicSSHKey []byte `json:"public_ssh_key"`
+	// RemoteAddr
+	RemoteAddr string
 }
 
 // CheckAndSetDefaults checks and sets default values
@@ -777,6 +779,11 @@ func (s *AuthServer) GenerateServerKeys(req GenerateServerKeysRequest) (*PackedK
 	if err := req.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
+
+	req.AdditionalPrincipals = utils.ReplaceInSlice(
+		req.AdditionalPrincipals,
+		"0.0.0.0",
+		req.RemoteAddr)
 
 	var cryptoPubKey crypto.PublicKey
 	var privateKeyPEM, pubSSHKey []byte
@@ -833,7 +840,7 @@ func (s *AuthServer) GenerateServerKeys(req GenerateServerKeysRequest) (*PackedK
 		NodeName:            req.NodeName,
 		ClusterName:         s.clusterName.GetClusterName(),
 		Roles:               req.Roles,
-		Principals:          append([]string{}, req.AdditionalPrincipals...),
+		Principals:          req.AdditionalPrincipals,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -935,6 +942,8 @@ type RegisterUsingTokenRequest struct {
 	// if present will be signed as a return value
 	// otherwise, new public/private key pair will be generated
 	PublicSSHKey []byte `json:"public_ssh_key"`
+	// RemoteAddr
+	RemoteAddr string
 }
 
 // CheckAndSetDefaults checks for errors and sets defaults
@@ -986,6 +995,7 @@ func (s *AuthServer) RegisterUsingToken(req RegisterUsingTokenRequest) (*PackedK
 		AdditionalPrincipals: req.AdditionalPrincipals,
 		PublicTLSKey:         req.PublicTLSKey,
 		PublicSSHKey:         req.PublicSSHKey,
+		RemoteAddr:           req.RemoteAddr,
 	})
 	if err != nil {
 		return nil, trace.Wrap(err)
@@ -1261,4 +1271,14 @@ func isHTTPS(u string) error {
 	}
 
 	return nil
+}
+
+// indexOfZeroAddress returns the index of the address 0.0.0.0 within the slice.
+func indexOfZeroAddress(s []string) (int, error) {
+	for i, v := range s {
+		if v == "0.0.0.0" {
+			return i, nil
+		}
+	}
+	return 0, trace.NotFound("zero address not found")
 }

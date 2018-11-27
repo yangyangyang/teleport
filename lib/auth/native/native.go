@@ -191,16 +191,6 @@ func (k *Keygen) GenerateHostCert(c services.HostCertParams) ([]byte, error) {
 	}
 	principals = utils.Deduplicate(principals)
 
-	//var pp []string
-	//for _, ppp := range principals {
-	//	if strings.HasPrefix(ppp, "[") {
-	//		pp = append(pp, ppp[1:len(ppp)-1])
-	//	} else {
-	//		pp = append(pp, ppp)
-	//	}
-	//}
-	//principals = pp
-
 	// create certificate
 	validBefore := uint64(ssh.CertTimeInfinity)
 	if c.TTL != 0 {
@@ -222,8 +212,8 @@ func (k *Keygen) GenerateHostCert(c services.HostCertParams) ([]byte, error) {
 		return nil, trace.Wrap(err)
 	}
 
-	log.Debugf("Generated SSH host certificate for '%v' with role '%v' and principals: %v.",
-		c.NodeName, c.Roles, principals)
+	log.Debugf("Generated SSH host certificate for role %v with principals: %v.",
+		c.Roles, principals)
 	return ssh.MarshalAuthorizedKey(cert), nil
 }
 

@@ -1517,13 +1517,11 @@ func (process *TeleportProcess) getAdditionalPrincipals(role teleport.Role) ([]s
 			if err != nil {
 				return nil, trace.Wrap(err)
 			}
+			//fmt.Printf("--> *advertiseIP: %v\n", *advertiseIP)
 			addrs = append(addrs, *advertiseIP)
 		} else {
-			netAddrs, err := utils.EnumerateHostIPs()
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			addrs = append(addrs, netAddrs...)
+			//fmt.Printf("--> process.Config.SSH.Addr: %v\n", process.Config.SSH.Addr)
+			addrs = append(addrs, process.Config.SSH.Addr)
 		}
 	}
 	for _, addr := range addrs {
