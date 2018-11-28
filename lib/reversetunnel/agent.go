@@ -295,8 +295,8 @@ func (a *Agent) checkHostSignature(hostport string, remote net.Addr, key ssh.Pub
 func (a *Agent) connect() (conn *ssh.Client, err error) {
 	for _, authMethod := range a.authMethods {
 		// if http_proxy is set, dial through the proxy
-		dialer := proxy.DialerFromEnvironment(a.Addr.Addr)
-		conn, err = dialer.Dial(a.Addr.AddrNetwork, a.Addr.Addr, &ssh.ClientConfig{
+		dialer := proxy.DialerFromEnvironment(a.Addr.Address())
+		conn, err = dialer.Dial(a.Addr.Network(), a.Addr.Address(), &ssh.ClientConfig{
 			User:            a.Username,
 			Auth:            []ssh.AuthMethod{authMethod},
 			HostKeyCallback: a.hostKeyCallback,
@@ -366,7 +366,7 @@ func (a *Agent) proxyTransport(ch ssh.Channel, reqC <-chan *ssh.Request) {
 			req.Reply(false, []byte("connection rejected: configure kubernetes proxy for this cluster."))
 			return
 		}
-		servers = append(servers, a.KubeDialAddr.Addr)
+		servers = append(servers, a.KubeDialAddr.Address())
 	default:
 		servers = append(servers, server)
 	}

@@ -7,11 +7,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gravitational/teleport/lib/utils"
+	//"github.com/gravitational/teleport/lib/utils"
+	"golang.org/x/crypto/ssh/agent"
 
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
-	"golang.org/x/crypto/ssh/agent"
+
+	"github.com/sirupsen/logrus"
 )
 
 // AgentServer is implementation of SSH agent server
@@ -60,7 +61,7 @@ func (a *AgentServer) Serve() error {
 			}
 			if !neterr.Temporary() {
 				if !strings.Contains(neterr.Error(), "use of closed network connection") {
-					log.Errorf("got permanent error: %v", err)
+					logrus.Errorf("got permanent error: %v", err)
 				}
 				return err
 			}
@@ -72,7 +73,7 @@ func (a *AgentServer) Serve() error {
 			if max := 1 * time.Second; tempDelay > max {
 				tempDelay = max
 			}
-			log.Errorf("got temp error: %v, will sleep %v", err, tempDelay)
+			logrus.Errorf("got temp error: %v, will sleep %v", err, tempDelay)
 			time.Sleep(tempDelay)
 			continue
 		}
@@ -80,28 +81,28 @@ func (a *AgentServer) Serve() error {
 		go func() {
 			if err := agent.ServeAgent(a.Agent, conn); err != nil {
 				if err != io.EOF {
-					log.Errorf(err.Error())
+					logrus.Errorf(err.Error())
 				}
 			}
 		}()
 	}
 }
 
-// ListenAndServe is similar http.ListenAndServe
-func (a *AgentServer) ListenAndServe(addr utils.NetAddr) error {
-	l, err := net.Listen(addr.AddrNetwork, addr.Addr)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	a.listener = l
-	return a.Serve()
-}
+//// ListenAndServe is similar http.ListenAndServe
+//func (a *AgentServer) ListenAndServe(addr utils.NetAddr) error {
+//	l, err := net.Listen(addr.AddrNetwork, addr.Addr)
+//	if err != nil {
+//		return trace.Wrap(err)
+//	}
+//	a.listener = l
+//	return a.Serve()
+//}
 
 // Close closes listener and stops serving agent
 func (a *AgentServer) Close() error {
 	var errors []error
 	if a.listener != nil {
-		log.Debugf("AgentServer(%v) is closing", a.listener.Addr())
+		logrus.Debugf("AgentServer(%v) is closing", a.listener.Addr())
 		if err := a.listener.Close(); err != nil {
 			errors = append(errors, trace.ConvertSystemError(err))
 		}

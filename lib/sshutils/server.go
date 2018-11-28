@@ -228,7 +228,7 @@ func (s *Server) Serve(listener net.Listener) error {
 }
 
 func (s *Server) Start() error {
-	listener, err := net.Listen(s.addr.AddrNetwork, s.addr.Addr)
+	listener, err := net.Listen(s.addr.Network(), s.addr.Address())
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
@@ -451,7 +451,7 @@ type AuthMethods struct {
 }
 
 func checkArguments(a utils.NetAddr, h NewChanHandler, hostSigners []ssh.Signer, ah AuthMethods) error {
-	if a.Addr == "" || a.AddrNetwork == "" {
+	if a.IsEmpty() {
 		return trace.BadParameter("addr: specify network and the address for listening socket")
 	}
 

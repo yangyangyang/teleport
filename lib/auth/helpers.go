@@ -350,9 +350,9 @@ func (a *TestAuthServer) NewRemoteClient(identity TestIdentity, addr net.Addr, p
 	}
 	tlsConfig.Certificates = []tls.Certificate{*cert}
 	tlsConfig.RootCAs = pool
-	addrs := []utils.NetAddr{{
-		AddrNetwork: addr.Network(),
-		Addr:        addr.String()}}
+	addrs := []utils.NetAddr{
+		utils.FromAddr(addr),
+	}
 	return NewTLSClient(addrs, tlsConfig)
 }
 
@@ -539,7 +539,7 @@ func (t *TestTLSServer) ClientTLSConfig(identity TestIdentity) (*tls.Config, err
 // CloneClient uses the same credentials as the passed client
 // but forces the client to be recreated
 func (t *TestTLSServer) CloneClient(clt *Client) *Client {
-	addr := []utils.NetAddr{{Addr: t.Addr().String(), AddrNetwork: t.Addr().Network()}}
+	addr := []utils.NetAddr{utils.FromAddr(t.Addr())}
 	newClient, err := NewTLSClient(addr, clt.TLSConfig())
 	if err != nil {
 		panic(err)

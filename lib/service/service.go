@@ -978,9 +978,9 @@ func (process *TeleportProcess) initAuthService() error {
 		return trace.Wrap(err)
 	}
 	// auth server listens on SSH and TLS, reusing the same socket
-	listener, err := process.importOrCreateListener(teleport.ComponentAuth, cfg.Auth.SSHAddr.Addr)
+	listener, err := process.importOrCreateListener(teleport.ComponentAuth, cfg.Auth.SSHAddr.Address())
 	if err != nil {
-		log.Errorf("PID: %v Failed to bind to address %v: %v, exiting.", os.Getpid(), cfg.Auth.SSHAddr.Addr, err)
+		log.Errorf("PID: %v Failed to bind to address %v: %v, exiting.", os.Getpid(), cfg.Auth.SSHAddr.Address(), err)
 		return trace.Wrap(err)
 	}
 	// clean up unused descriptors passed for proxy, but not used by it
@@ -999,7 +999,7 @@ func (process *TeleportProcess) initAuthService() error {
 	}
 	go mux.Serve()
 	process.RegisterCriticalFunc("auth.tls", func() error {
-		utils.Consolef(cfg.Console, teleport.ComponentAuth, "Auth service is starting on %v.", cfg.Auth.SSHAddr.Addr)
+		utils.Consolef(cfg.Console, teleport.ComponentAuth, "Auth service is starting on %v.", cfg.Auth.SSHAddr.Address())
 
 		// since tlsServer.Serve is a blocking call, we emit this even right before
 		// the service has started
@@ -1033,7 +1033,7 @@ func (process *TeleportProcess) initAuthService() error {
 				Name:      process.Config.HostUUID,
 			},
 			Spec: services.ServerSpecV2{
-				Addr:     cfg.Auth.SSHAddr.Addr,
+				Addr:     cfg.Auth.SSHAddr.Address(),
 				Hostname: process.Config.Hostname,
 			},
 		}
@@ -1229,7 +1229,7 @@ func (process *TeleportProcess) initSSH() error {
 			return trace.Wrap(err)
 		}
 
-		listener, err := process.importOrCreateListener(teleport.ComponentNode, cfg.SSH.Addr.Addr)
+		listener, err := process.importOrCreateListener(teleport.ComponentNode, cfg.SSH.Addr.Address())
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -1268,8 +1268,8 @@ func (process *TeleportProcess) initSSH() error {
 			}
 		}
 
-		log.Infof("Service is starting on %v %v.", cfg.SSH.Addr.Addr, process.Config.CachePolicy)
-		utils.Consolef(cfg.Console, teleport.ComponentNode, "Service is starting on %v.", cfg.SSH.Addr.Addr)
+		log.Infof("Service is starting on %v %v.", cfg.SSH.Addr.Address(), process.Config.CachePolicy)
+		utils.Consolef(cfg.Console, teleport.ComponentNode, "Service is starting on %v.", cfg.SSH.Addr.Address())
 		go s.Serve(listener)
 
 		// broadcast that the node has started
@@ -1400,7 +1400,7 @@ func (process *TeleportProcess) initDiagnosticService() error {
 	mux.Handle("/metrics", prometheus.Handler())
 
 	if process.Config.Debug {
-		log.Infof("Adding diagnostic debugging handlers. To connect with profiler, use `go tool pprof %v`.", process.Config.DiagnosticAddr.Addr)
+		log.Infof("Adding diagnostic debugging handlers. To connect with profiler, use `go tool pprof %v`.", process.Config.DiagnosticAddr.Address())
 
 		mux.HandleFunc("/debug/pprof/", pprof.Index)
 		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -1458,7 +1458,7 @@ func (process *TeleportProcess) initDiagnosticService() error {
 		}
 	})
 
-	listener, err := process.importOrCreateListener(teleport.ComponentDiagnostic, process.Config.DiagnosticAddr.Addr)
+	listener, err := process.importOrCreateListener(teleport.ComponentDiagnostic, process.Config.DiagnosticAddr.Address())
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -1468,7 +1468,7 @@ func (process *TeleportProcess) initDiagnosticService() error {
 		Handler: mux,
 	}
 
-	log.Infof("Starting diagnostic service on %v.", process.Config.DiagnosticAddr.Addr)
+	log.Infof("Starting diagnostic service on %v.", process.Config.DiagnosticAddr.Address())
 
 	process.RegisterFunc("diagnostic.service", func() error {
 		err := server.Serve(listener)
@@ -1502,7 +1502,7 @@ func (process *TeleportProcess) getAdditionalPrincipals(role teleport.Role) ([]s
 	var addrs []utils.NetAddr
 	switch role {
 	case teleport.RoleProxy:
-		addrs = append(process.Config.Proxy.PublicAddrs, utils.NetAddr{Addr: reversetunnel.RemoteKubeProxy})
+		addrs = append(process.Config.Proxy.PublicAddrs, *utils.NewNetAddr("tcp", reversetunnel.RemoteKubeProxy, ""))
 		addrs = append(addrs, process.Config.Proxy.SSHPublicAddrs...)
 		addrs = append(addrs, process.Config.Proxy.Kube.PublicAddrs...)
 	case teleport.RoleAuth, teleport.RoleAdmin:
@@ -1525,14 +1525,7 @@ func (process *TeleportProcess) getAdditionalPrincipals(role teleport.Role) ([]s
 		}
 	}
 	for _, addr := range addrs {
-		host, err := utils.Host(addr.Addr)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		// IPv6 addresses within a utils.NetAddr are encoded in a URI. This means
-		// they are wrapped in brackets and these brackets need to be removed
-		// before adding to the list of principals.
-		principals = append(principals, utils.StripBrackets(host))
+		principals = append(principals, addr.Host())
 	}
 	return principals, nil
 }
@@ -1604,13 +1597,13 @@ func (l *proxyListeners) Close() {
 // setupProxyListeners sets up web proxy listeners based on the configuration
 func (process *TeleportProcess) setupProxyListeners() (*proxyListeners, error) {
 	cfg := process.Config
-	process.Debugf("Setup Proxy: Web Proxy Address: %v, Reverse Tunnel Proxy Address: %v", cfg.Proxy.WebAddr.Addr, cfg.Proxy.ReverseTunnelListenAddr.Addr)
+	process.Debugf("Setup Proxy: Web Proxy Address: %v, Reverse Tunnel Proxy Address: %v", cfg.Proxy.WebAddr.Address(), cfg.Proxy.ReverseTunnelListenAddr.Address())
 	var err error
 	var listeners proxyListeners
 
 	if cfg.Proxy.Kube.Enabled {
 		process.Debugf("Setup Proxy: turning on Kubernetes proxy.")
-		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "kube"), cfg.Proxy.Kube.ListenAddr.Addr)
+		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "kube"), cfg.Proxy.Kube.ListenAddr.Address())
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -1623,7 +1616,7 @@ func (process *TeleportProcess) setupProxyListeners() (*proxyListeners, error) {
 		return &listeners, nil
 	case cfg.Proxy.ReverseTunnelListenAddr.Equals(cfg.Proxy.WebAddr) && !cfg.Proxy.DisableTLS:
 		process.Debugf("Setup Proxy: Reverse tunnel proxy and web proxy listen on the same port, multiplexing is on.")
-		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel", "web"), cfg.Proxy.WebAddr.Addr)
+		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel", "web"), cfg.Proxy.WebAddr.Address())
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -1644,7 +1637,7 @@ func (process *TeleportProcess) setupProxyListeners() (*proxyListeners, error) {
 		return &listeners, nil
 	case cfg.Proxy.EnableProxyProtocol && !cfg.Proxy.DisableWebService && !cfg.Proxy.DisableTLS:
 		process.Debugf("Setup Proxy: Proxy protocol is enabled for web service, multiplexing is on.")
-		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "web"), cfg.Proxy.WebAddr.Addr)
+		listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "web"), cfg.Proxy.WebAddr.Address())
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
@@ -1660,7 +1653,7 @@ func (process *TeleportProcess) setupProxyListeners() (*proxyListeners, error) {
 			return nil, trace.Wrap(err)
 		}
 		listeners.web = listeners.mux.TLS()
-		listeners.reverseTunnel, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel"), cfg.Proxy.ReverseTunnelListenAddr.Addr)
+		listeners.reverseTunnel, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel"), cfg.Proxy.ReverseTunnelListenAddr.Address())
 		if err != nil {
 			listener.Close()
 			listeners.Close()
@@ -1671,14 +1664,14 @@ func (process *TeleportProcess) setupProxyListeners() (*proxyListeners, error) {
 	default:
 		process.Debugf("Proxy reverse tunnel are listening on the separate ports.")
 		if !cfg.Proxy.DisableReverseTunnel {
-			listeners.reverseTunnel, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel"), cfg.Proxy.ReverseTunnelListenAddr.Addr)
+			listeners.reverseTunnel, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "tunnel"), cfg.Proxy.ReverseTunnelListenAddr.Address())
 			if err != nil {
 				listeners.Close()
 				return nil, trace.Wrap(err)
 			}
 		}
 		if !cfg.Proxy.DisableWebService {
-			listeners.web, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "web"), cfg.Proxy.WebAddr.Addr)
+			listeners.web, err = process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "web"), cfg.Proxy.WebAddr.Address())
 			if err != nil {
 				listeners.Close()
 				return nil, trace.Wrap(err)
@@ -1769,8 +1762,8 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 			return trace.Wrap(err)
 		}
 		process.RegisterCriticalFunc("proxy.reveresetunnel.server", func() error {
-			utils.Consolef(cfg.Console, teleport.ComponentProxy, "Reverse tunnel service is starting on %v.", cfg.Proxy.ReverseTunnelListenAddr.Addr)
-			log.Infof("Starting on %v using %v", cfg.Proxy.ReverseTunnelListenAddr.Addr, process.Config.CachePolicy)
+			utils.Consolef(cfg.Console, teleport.ComponentProxy, "Reverse tunnel service is starting on %v.", cfg.Proxy.ReverseTunnelListenAddr.Address())
+			log.Infof("Starting on %v using %v", cfg.Proxy.ReverseTunnelListenAddr.Address(), process.Config.CachePolicy)
 			if err := tsrv.Start(); err != nil {
 				log.Error(err)
 				return trace.Wrap(err)
@@ -1832,8 +1825,8 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 			Handler: proxyLimiter,
 		}
 		process.RegisterCriticalFunc("proxy.web", func() error {
-			utils.Consolef(cfg.Console, teleport.ComponentProxy, "Web proxy service is starting on %v.", cfg.Proxy.WebAddr.Addr)
-			log.Infof("Web proxy service is starting on %v.", cfg.Proxy.WebAddr.Addr)
+			utils.Consolef(cfg.Console, teleport.ComponentProxy, "Web proxy service is starting on %v.", cfg.Proxy.WebAddr.Address())
+			log.Infof("Web proxy service is starting on %v.", cfg.Proxy.WebAddr.Address())
 			defer webHandler.Close()
 			process.BroadcastEvent(Event{Name: ProxyWebServerReady, Payload: webHandler})
 			if err := webServer.Serve(listeners.web); err != nil && err != http.ErrServerClosed {
@@ -1847,7 +1840,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	}
 
 	// Register SSH proxy server - SSH jumphost proxy server
-	listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "ssh"), cfg.Proxy.SSHAddr.Addr)
+	listener, err := process.importOrCreateListener(teleport.Component(teleport.ComponentProxy, "ssh"), cfg.Proxy.SSHAddr.Address())
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -1873,8 +1866,8 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	}
 
 	process.RegisterCriticalFunc("proxy.ssh", func() error {
-		utils.Consolef(cfg.Console, teleport.ComponentProxy, "SSH proxy service is starting on %v.", cfg.Proxy.SSHAddr.Addr)
-		log.Infof("SSH proxy service is starting on %v", cfg.Proxy.SSHAddr.Addr)
+		utils.Consolef(cfg.Console, teleport.ComponentProxy, "SSH proxy service is starting on %v.", cfg.Proxy.SSHAddr.Address())
+		log.Infof("SSH proxy service is starting on %v", cfg.Proxy.SSHAddr.Address())
 		go sshProxy.Serve(listener)
 		// broadcast that the proxy ssh server has started
 		process.BroadcastEvent(Event{Name: ProxySSHReady, Payload: nil})
@@ -1932,7 +1925,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 			log := logrus.WithFields(logrus.Fields{
 				trace.Component: teleport.Component(teleport.ComponentKube),
 			})
-			log.Infof("Starting Kube proxy on %v.", cfg.Proxy.Kube.ListenAddr.Addr)
+			log.Infof("Starting Kube proxy on %v.", cfg.Proxy.Kube.ListenAddr.Address())
 			err := kubeServer.Serve(listeners.kube)
 			if err != nil && err != http.ErrServerClosed {
 				log.Warningf("Kube TLS server exited with error: %v.", err)

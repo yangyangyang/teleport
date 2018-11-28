@@ -207,13 +207,15 @@ type cluster struct {
 func (c *cluster) Dial(_, _ string) (net.Conn, error) {
 	return c.RemoteSite.DialTCP(
 		&c.remoteAddr,
-		&utils.NetAddr{AddrNetwork: "tcp", Addr: c.targetAddr})
+		utils.NewNetAddr("tcp", c.targetAddr, ""),
+	)
 }
 
 func (c *cluster) DialWithContext(ctx context.Context, _, _ string) (net.Conn, error) {
 	return c.RemoteSite.DialTCP(
 		&c.remoteAddr,
-		&utils.NetAddr{AddrNetwork: "tcp", Addr: c.targetAddr})
+		utils.NewNetAddr("tcp", c.targetAddr, ""),
+	)
 }
 
 // handlerWithAuthFunc is http handler with passed auth context
@@ -323,7 +325,7 @@ func (f *Forwarder) setupContext(ctx auth.AuthContext, req *http.Request, isRemo
 		AuthContext: ctx,
 		kubeGroups:  kubeGroups,
 		cluster: cluster{
-			remoteAddr: utils.NetAddr{AddrNetwork: "tcp", Addr: req.RemoteAddr},
+			remoteAddr: *utils.NewNetAddr("tcp", req.RemoteAddr, ""),
 			RemoteSite: targetCluster,
 			targetAddr: f.TargetAddr,
 			isRemote:   isRemoteCluster,

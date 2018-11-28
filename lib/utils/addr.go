@@ -17,256 +17,169 @@ limitations under the License.
 package utils
 
 import (
-	"fmt"
+	//"fmt"
 	"net"
-	"net/url"
+	//"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/gravitational/trace"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
-// NetAddr is network address that includes address, network, (optionally)
-// path, and (optionally) the raw address.
+// NetAddr is network address that includes network, address, network (if tcp),
+// path (if unix), and (optionally) the raw address.
 type NetAddr struct {
-	// Addr is the host:port address, like "localhost:22"
-	Addr string `json:"addr"`
+	addr    net.Addr
+	network string
 
-	// AddrNetwork is the type of a network socket, like "tcp" or "unix"
-	AddrNetwork string `json:"network,omitempty"`
+	host string
 
-	// Path is a socket file path, like '/var/path/to/socket' in "unix:///var/path/to/socket"
-	Path string `json:"path,omitempty"`
+	port string
 
-	// Raw is the raw address before any parsing and DNS resolution.
+	// Raw is the raw un-resolved address before any parsing and DNS resolution.
 	Raw string `json:"raw,omitempty"`
 }
 
-// Host returns host part of address without port
-func (a *NetAddr) Host() string {
-	host, _, err := net.SplitHostPort(a.Addr)
+func NewNetAddr(network string, host string, port string) *NetAddr {
+	return &NetAddr{
+		network: network,
+		host:    host,
+		port:    port,
+	}
+}
+
+// ParseAddr parses a addr string and creates a *NetAddr.
+func ParseAddr(addr string) (*NetAddr, error) {
+	if addr == "" {
+		return nil, trace.BadParameter("addr empty")
+	}
+
+	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
-		return a.Addr
+		return &NetAddr{
+			network: "tcp",
+			host:    addr,
+		}, nil
 	}
-	return host
+	return &NetAddr{
+		network: "tcp",
+		host:    host,
+		port:    port,
+	}, nil
 }
 
-// Port returns defaultPort if no port is set or is invalid,
-// the real port otherwise
-func (a *NetAddr) Port(defaultPort int) int {
-	_, port, err := net.SplitHostPort(a.Addr)
-	if err != nil {
-		return defaultPort
-	}
-	porti, err := strconv.Atoi(port)
-	if err != nil {
-		return defaultPort
-	}
-	return porti
-}
+// FromAddr returns NetAddr from a net.Addr.
+func FromAddr(addr net.Addr) NetAddr {
+	netAddr, _ := ParseAddr(addr.String())
 
-// Equals returns true if address is equal to other
-func (a *NetAddr) Equals(other NetAddr) bool {
-	return a.Addr == other.Addr && a.AddrNetwork == other.AddrNetwork && a.Path == other.Path
-}
-
-// IsLocal returns true if this is a local address
-func (a *NetAddr) IsLocal() bool {
-	host, _, err := net.SplitHostPort(a.Addr)
-	if err != nil {
-		return false
-	}
-	return IsLocalhost(host)
-}
-
-// IsLoopback returns true if this is a loopback address
-func (a *NetAddr) IsLoopback() bool {
-	return IsLoopback(a.Addr)
-}
-
-// IsEmpty returns true if address is empty
-func (a *NetAddr) IsEmpty() bool {
-	return a.Addr == "" && a.AddrNetwork == "" && a.Path == ""
-}
-
-// FullAddress returns full address including network and address (tcp://0.0.0.0:1243)
-func (a *NetAddr) FullAddress() string {
-	return fmt.Sprintf("%v://%v", a.AddrNetwork, a.Addr)
-}
-
-// String returns address without network (0.0.0.0:1234)
-func (a *NetAddr) String() string {
-	return a.Addr
-}
-
-// Network returns the scheme for this network address (tcp or unix)
-func (a *NetAddr) Network() string {
-	return a.AddrNetwork
-}
-
-// MarshalYAML defines how a network address should be marshalled to a string
-func (a *NetAddr) MarshalYAML() (interface{}, error) {
-	url := url.URL{Scheme: a.AddrNetwork, Host: a.Addr, Path: a.Path}
-	return strings.TrimLeft(url.String(), "/"), nil
-}
-
-// UnmarshalYAML defines how a string can be unmarshalled into a network address
-func (a *NetAddr) UnmarshalYAML(unmarshal func(interface{}) error) error {
-	var addr string
-	err := unmarshal(&addr)
-	if err != nil {
-		return err
-	}
-
-	parsedAddr, err := ParseAddr(addr)
-	if err != nil {
-		return err
-	}
-
-	*a = *parsedAddr
-	return nil
-}
-
-func (a *NetAddr) Set(s string) error {
-	v, err := ParseAddr(s)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	a.Addr = v.Addr
-	a.AddrNetwork = v.AddrNetwork
-	return nil
-}
-
-// ParseAddr takes strings like "tcp://host:port/path" and returns
-// *NetAddr or an error
-func ParseAddr(a string) (*NetAddr, error) {
-	if a == "" {
-		return nil, trace.BadParameter("missing parameter address")
-	}
-	if !strings.Contains(a, "://") {
-		return &NetAddr{Addr: a, AddrNetwork: "tcp"}, nil
-	}
-	u, err := url.Parse(a)
-	if err != nil {
-		return nil, trace.BadParameter("failed to parse %q: %v", a, err)
-	}
-	switch u.Scheme {
-	case "tcp":
-		return &NetAddr{Addr: u.Host, AddrNetwork: u.Scheme, Path: u.Path}, nil
-	case "unix":
-		return &NetAddr{Addr: u.Path, AddrNetwork: u.Scheme}, nil
-	case "http", "https":
-		return &NetAddr{Addr: u.Host, AddrNetwork: u.Scheme, Path: u.Path}, nil
-	default:
-		return nil, trace.BadParameter("'%v': unsupported scheme: '%v'", a, u.Scheme)
+	return NetAddr{
+		network: addr.Network(),
+		host:    netAddr.host,
+		port:    netAddr.port,
 	}
 }
 
-// MustParseAddr parses the provided string into NetAddr or panics on an error
-func MustParseAddr(a string) *NetAddr {
-	addr, err := ParseAddr(a)
-	if err != nil {
-		panic(fmt.Sprintf("failed to parse %v: %v", a, err))
-	}
-	return addr
-}
-
-// FromAddr returns NetAddr from golang standard net.Addr
-func FromAddr(a net.Addr) NetAddr {
-	return NetAddr{AddrNetwork: a.Network(), Addr: a.String()}
-}
-
-// ParseHostPortAddr takes strings like "host:port" and returns
-// *NetAddr or an error
-//
-// If defaultPort == -1 it expects 'hostport' string to have it
-func ParseHostPortAddr(hostport string, defaultPort int) (*NetAddr, error) {
-	addr, err := ParseAddr(hostport)
+// ParseHostPortAddr takes strings like "host:port" and returns *NetAddr or
+// an error. If defaultPort is -1 it expects the hostport string to have it.
+func ParseHostPortAddr(addr string, defaultPort int) (*NetAddr, error) {
+	netAddr, err := ParseAddr(addr)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 	// port is required but not set
-	if defaultPort == -1 && addr.Addr == addr.Host() {
-		return nil, trace.BadParameter("missing port in address %q", hostport)
+	if defaultPort == -1 && netAddr.port == "" {
+		return nil, trace.BadParameter("missing port in address '%v'", addr)
 	}
-	addr.Addr = fmt.Sprintf("%v:%v", addr.Host(), addr.Port(defaultPort))
-	return addr, nil
+	if netAddr.port == "" {
+		netAddr.port = strconv.Itoa(defaultPort)
+	}
+	return netAddr, nil
 }
 
-// DialAddrFromListenAddr returns dial address from listen address
+func (a *NetAddr) Host() string {
+	return a.host
+}
+
+func (a *NetAddr) Port(defaultPort int) int {
+	if a.port == "" {
+		return defaultPort
+	}
+	port, err := strconv.Atoi(a.port)
+	if err != nil {
+		return defaultPort
+	}
+	return port
+}
+
+func (a *NetAddr) HostPort(defaultPort int) string {
+	return net.JoinHostPort(a.Host(), strconv.Itoa(a.Port(defaultPort)))
+}
+
+func (a *NetAddr) Address() string {
+	if a.port != "" {
+		return net.JoinHostPort(a.host, a.port)
+	}
+	return a.host
+}
+
+func (a *NetAddr) String() string {
+	return a.Address()
+}
+
+// Network returns the scheme for this network address.
+func (a *NetAddr) Network() string {
+	return a.network
+}
+
+// Equals returns true if address is equal to other.
+func (a *NetAddr) Equals(other NetAddr) bool {
+	return a.host == other.host && a.port == other.port && a.network == other.network
+}
+
+//// String returns address without network.
+//func (a *NetAddr) String() string {
+//	if a.Addr != "" {
+//		return a.Addr
+//	}
+//	return a.Path
+//}
+
+// IsLocal returns true if this is a local address.
+func (a *NetAddr) IsLocal() bool {
+	//host, _, err := net.SplitHostPort(a.Addr)
+	//if err != nil {
+	//	return false
+	//}
+	return IsLocalhost(a.host)
+}
+
+// IsLoopback returns true if this is a loopback address.
+func (a *NetAddr) IsLoopback() bool {
+	return IsLoopback(a.host)
+}
+
+// IsEmpty returns true if address is empty.
+func (a *NetAddr) IsEmpty() bool {
+	//return a.Addr == "" && a.AddrNetwork == "" && a.Path == ""
+	return a.network == "" && a.host == "" && a.port == ""
+}
+
+// DialAddrFromListenAddr returns dial address from listen address.
 func DialAddrFromListenAddr(listenAddr NetAddr) NetAddr {
 	if listenAddr.IsEmpty() {
 		return listenAddr
 	}
-	return NetAddr{Addr: ReplaceLocalhost(listenAddr.Addr, "127.0.0.1")}
+	return NetAddr{host: ReplaceLocalhost(listenAddr.host, "127.0.0.1")}
 }
 
-func NewNetAddrVal(defaultVal NetAddr, val *NetAddr) *NetAddrVal {
-	*val = defaultVal
-	return (*NetAddrVal)(val)
-}
-
-// NetAddrVal can be used with flag package
-type NetAddrVal NetAddr
-
-func (a *NetAddrVal) Set(s string) error {
-	v, err := ParseAddr(s)
-	if err != nil {
-		return err
-	}
-	a.Addr = v.Addr
-	a.AddrNetwork = v.AddrNetwork
-	return nil
-}
-
-func (a *NetAddrVal) String() string {
-	return ((*NetAddr)(a)).FullAddress()
-}
-
-func (a *NetAddrVal) Get() interface{} {
-	return NetAddr(*a)
-}
-
-// NetAddrList is a list of NetAddrs that supports
-// helper methods for parsing from CLI tools
-type NetAddrList []NetAddr
-
-// Addresses returns a slice of strings converted from the addresses
-func (nl *NetAddrList) Addresses() []string {
-	var ns []string
-	for _, n := range *nl {
-		ns = append(ns, n.FullAddress())
-	}
-	return ns
-}
-
-// Set is called by CLI tools
-func (nl *NetAddrList) Set(s string) error {
-	v, err := ParseAddr(s)
-	if err != nil {
-		return err
-	}
-
-	*nl = append(*nl, *v)
-	return nil
-}
-
-// String returns debug-friendly representation of the tool
-func (nl *NetAddrList) String() string {
-	var ns []string
-	for _, n := range *nl {
-		ns = append(ns, n.FullAddress())
-	}
-	return strings.Join(ns, " ")
-}
-
-// ReplaceLocalhost checks if a given address is link-local (like 0.0.0.0 or 127.0.0.1)
-// and replaces it with the IP taken from replaceWith, preserving the original port
+// ReplaceLocalhost checks if a given address is link-local (like 0.0.0.0 or
+// 127.0.0.1) and replaces it with the IP taken from replaceWith, preserving
+// the original port.
 //
-// Both addresses are in "host:port" format
-// The function returns the original value if it encounters any problems with parsing
-func ReplaceLocalhost(addr, replaceWith string) string {
+// Both addresses need to be in hostport format. The function returns the
+// original value if it encounters any problems with parsing.
+func ReplaceLocalhost(addr string, replaceWith string) string {
 	host, port, err := net.SplitHostPort(addr)
 	if err != nil {
 		return addr
@@ -281,7 +194,7 @@ func ReplaceLocalhost(addr, replaceWith string) string {
 	return addr
 }
 
-// IsLocalhost returns true if this is a local hostname or ip
+// IsLocalhost returns true if this is a local hostname or IP.
 func IsLocalhost(host string) bool {
 	if host == "localhost" {
 		return true
@@ -290,8 +203,8 @@ func IsLocalhost(host string) bool {
 	return ip.IsLoopback() || ip.IsUnspecified()
 }
 
-// IsLoopback returns 'true' if a given hostname resolves to local
-// host's loopback interface
+// IsLoopback returns true if a given hostname resolves to local
+// host's loopback interface.
 func IsLoopback(host string) bool {
 	if strings.Contains(host, ":") {
 		var err error
@@ -310,57 +223,6 @@ func IsLoopback(host string) bool {
 		}
 	}
 	return false
-}
-
-// EnumerateHostIPs returns a slice of all the IPs on the host.
-func EnumerateHostIPs() ([]NetAddr, error) {
-	netAddrs := make([]NetAddr, 0)
-
-	// Enumerate all interfaces on the host.
-	interfaces, err := net.Interfaces()
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	for _, face := range interfaces {
-		// For each interface, enumerate all addresses on the interface.
-		addrs, err := face.Addrs()
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		for _, addr := range addrs {
-			// Convert from CIDR format to an IP address. For example
-			// "127.0.0.1/8" to "127.0.0.1".
-			ipAddr, err := cidrToAddr(addr)
-			if err != nil {
-				return nil, trace.Wrap(err)
-			}
-			netAddrs = append(netAddrs, NetAddr{
-				Addr:        ipAddr,
-				AddrNetwork: "tcp",
-			})
-		}
-	}
-	return netAddrs, nil
-}
-
-// cidrToAddr converts net.Addr in CIDR format to an address string.
-func cidrToAddr(addr net.Addr) (string, error) {
-	// Extract IP from CIDR form.
-	var ip net.IP
-	switch v := addr.(type) {
-	case *net.IPNet:
-		ip = v.IP
-	case *net.IPAddr:
-		ip = v.IP
-	default:
-		return "", trace.BadParameter("unknown addr type: %T", addr)
-	}
-
-	// Literal IPv6 addresses need to be surrounded by brackets.
-	if isIPv6(ip) {
-		return WithBrackets(ip.String()), nil
-	}
-	return ip.String(), nil
 }
 
 // isIPv6 returns true if the net.IP is a IPv6 address.
@@ -382,7 +244,7 @@ func GuessHostIP() (ip net.IP, err error) {
 	for _, iface := range ifaces {
 		ifadrs, err := iface.Addrs()
 		if err != nil {
-			log.Warn(err)
+			logrus.Warn(err)
 		} else {
 			adrs = append(adrs, ifadrs...)
 		}
@@ -439,13 +301,13 @@ func guessHostIP(addrs []net.Addr) (ip net.IP) {
 	return ip
 }
 
-func WithBrackets(addr string) string {
-	return fmt.Sprintf("[%v]", addr)
-}
-
-func StripBrackets(addr string) string {
-	if !strings.HasPrefix(addr, "[") || !strings.HasSuffix(addr, "]") {
-		return addr
-	}
-	return addr[1 : len(addr)-1]
-}
+//func WithBrackets(addr string) string {
+//	return fmt.Sprintf("[%v]", addr)
+//}
+//
+//func StripBrackets(addr string) string {
+//	if !strings.HasPrefix(addr, "[") || !strings.HasSuffix(addr, "]") {
+//		return addr
+//	}
+//	return addr[1 : len(addr)-1]
+//}

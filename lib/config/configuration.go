@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -767,7 +768,7 @@ func readTrustedClusters(clusters []TrustedCluster, conf *service.Config) error 
 					"Invalid tunnel address '%s' for cluster '%s'. Expect host:port format",
 					ta, clusterName)
 			}
-			tunnelAddresses = append(tunnelAddresses, addr.FullAddress())
+			tunnelAddresses = append(tunnelAddresses, addr.String())
 		}
 		if len(tunnelAddresses) > 0 {
 			conf.ReverseTunnels = append(conf.ReverseTunnels, services.NewReverseTunnel(clusterName, tunnelAddresses))
@@ -850,7 +851,7 @@ func Configure(clf *CommandLineFlags, cfg *service.Config) error {
 		if err != nil {
 			return trace.Wrap(err)
 		}
-		log.Infof("Using auth server: %v", addr.FullAddress())
+		log.Infof("Using auth server: %v", addr.String())
 		cfg.AuthServers = []utils.NetAddr{*addr}
 	}
 
@@ -1001,11 +1002,13 @@ func applyListenIP(ip net.IP, cfg *service.Config) {
 // replaceHost takes utils.NetAddr and replaces the hostname in it, preserving
 // the original port
 func replaceHost(addr *utils.NetAddr, newHost string) {
-	_, port, err := net.SplitHostPort(addr.Addr)
-	if err != nil {
-		log.Errorf("failed parsing address: '%v'", addr.Addr)
-	}
-	addr.Addr = net.JoinHostPort(newHost, port)
+	//_, port, err := net.SplitHostPort(addr.Address())
+	//if err != nil {
+	//	log.Errorf("failed parsing address: '%v'", addr.Addr)
+	//}
+	// TODO: set host directly...!!!
+	addr = utils.NewNetAddr("tcp", newHost, strconv.Itoa(addr.Port(0)))
+	//addr.Addr = net.JoinHostPort(newHost, port)
 }
 
 func fileExists(fp string) bool {

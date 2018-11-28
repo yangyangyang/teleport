@@ -247,7 +247,7 @@ func NewServer(cfg Config) (Server, error) {
 		teleport.ComponentReverseTunnelServer,
 		// TODO(klizhentas): improve interface, use struct instead of parameter list
 		// this address is not used
-		utils.NetAddr{Addr: "127.0.0.1:1", AddrNetwork: "tcp"},
+		*utils.NewNetAddr("tcp", "127.0.0.1", "1"),
 		srv,
 		cfg.HostSigners,
 		sshutils.AuthMethods{

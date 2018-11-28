@@ -156,7 +156,7 @@ func connectToAuthService(cfg *service.Config) (client auth.ClientI, err error) 
 	if err != nil {
 		utils.Consolef(os.Stderr, teleport.ComponentClient,
 			"Cannot connect to the auth server: %v.\nIs the auth server running on %v?",
-			err, cfg.AuthServers[0].Addr)
+			err, cfg.AuthServers[0].Address())
 		os.Exit(1)
 	}
 	return client, nil

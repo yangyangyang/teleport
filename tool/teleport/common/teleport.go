@@ -92,7 +92,7 @@ func Run(options Options) (executedCommand string, conf *service.Config) {
 		Short('l').
 		IPVar(&ccf.ListenIP)
 	start.Flag("auth-server",
-		fmt.Sprintf("Address of the auth server [%s]", defaults.AuthConnectAddr().Addr)).
+		fmt.Sprintf("Address of the auth server [%s]", defaults.AuthConnectAddr().Address())).
 		StringVar(&ccf.AuthServerAddr)
 	start.Flag("token",
 		"Invitation token to register with an auth server [none]").

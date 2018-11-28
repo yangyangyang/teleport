@@ -86,6 +86,16 @@ func ParseAdvertiseAddr(advertiseIP string) (string, string, error) {
 	return host, port, nil
 }
 
+func IsUnreachable(addr string) bool {
+	ip := net.ParseIP(addr)
+	if len(ip) != 0 {
+		if ip.IsUnspecified() || ip.IsMulticast() {
+			return true
+		}
+	}
+	return false
+}
+
 // StringsSet creates set of string (map[string]struct{})
 // from a list of strings
 func StringsSet(in []string) map[string]struct{} {

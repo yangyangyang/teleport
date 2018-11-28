@@ -270,6 +270,7 @@ func (t *proxySubsys) proxyToHost(
 	// enumerate and try to find a server with self-registered with a matching name/IP:
 	var server services.Server
 	for i := range servers {
+		fmt.Printf("--> servers[i].GetAddr(): %v\n", servers[i].GetAddr())
 		ip, port, err := net.SplitHostPort(servers[i].GetAddr())
 		if err != nil {
 			t.log.Error(err)
@@ -300,11 +301,15 @@ func (t *proxySubsys) proxyToHost(
 	// Construct a utils.NetAddr with the resolved IP in it. Store the raw
 	// address in the utils.NetAddr (used by the forwarding proxy to generate a
 	// host certificate with the correct hostname).
-	toAddr := &utils.NetAddr{
-		Addr:        serverAddr,
-		AddrNetwork: "tcp",
-		Raw:         net.JoinHostPort(t.host, t.port),
+	toAddr, err := utils.ParseAddr(serverAddr)
+	if err != nil {
+		return trace.Wrap(err)
 	}
+	//toAddr := &utils.NetAddr{
+	//	Addr:        serverAddr,
+	//	AddrNetwork: "tcp",
+	//	Raw:         net.JoinHostPort(t.host, t.port),
+	//}
 
 	// Pass the agent along to the site. If the proxy is in recording mode, this
 	// agent is used to perform user authentication.

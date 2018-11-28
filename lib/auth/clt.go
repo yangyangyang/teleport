@@ -113,11 +113,11 @@ func NewAddrDialer(addrs []utils.NetAddr) DialContext {
 		var err error
 		var conn net.Conn
 		for _, addr := range addrs {
-			conn, err = dialer.DialContext(in, network, addr.Addr)
+			conn, err = dialer.DialContext(in, network, addr.Address())
 			if err == nil {
 				return conn, nil
 			}
-			log.Debugf("Failed to dial auth server %v: %v.", addr.Addr, err)
+			log.Debugf("Failed to dial auth server %v: %v.", addr.Address(), err)
 		}
 		// not wrapping on purpose to preserve the original error
 		return nil, err
@@ -207,7 +207,7 @@ func NewClient(addr string, dialer Dialer, params ...roundtrip.ClientParam) (*Cl
 		dialer = net.Dial
 	}
 	transport := &http.Transport{
-		Dial: dialer,
+		Dial:                  dialer,
 		ResponseHeaderTimeout: defaults.DefaultDialTimeout,
 	}
 	params = append(params,

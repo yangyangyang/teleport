@@ -478,21 +478,36 @@ func (s *Server) getAdvertiseIP() string {
 // AdvertiseAddr returns an address this server should be publicly accessible
 // as, in "ip:host" form
 func (s *Server) AdvertiseAddr() string {
-	// set if we have explicit --advertise-ip option
+	// If no advertise IP has been set, return the addr value.
 	advertiseIP := s.getAdvertiseIP()
 	if advertiseIP == "" {
-		return s.addr.Addr
+		return s.addr.Address()
 	}
-	_, port, _ := net.SplitHostPort(s.addr.Addr)
-	ahost, aport, err := utils.ParseAdvertiseAddr(advertiseIP)
+
+	netAddr, err := utils.ParseAddr(advertiseIP)
 	if err != nil {
-		log.Warningf("Failed to parse advertise address %q, %v, using default value %q.", advertiseIP, err, s.addr.Addr)
-		return s.addr.Addr
+		log.Warningf("Failed to parse advertise address '%v': %v. Using default value '%v'.", advertiseIP, err, s.addr.Address())
+		return s.addr.Address()
 	}
-	if aport == "" {
-		aport = port
+	if utils.IsUnreachable(netAddr.Address()) {
+		log.Warningf("unreachable")
+		return s.addr.Address()
+
 	}
-	return fmt.Sprintf("%v:%v", ahost, aport)
+
+	return netAddr.HostPort(s.addr.Port(defaults.SSHServerListenPort))
+
+	//// Advertise IP has been set, parse it and return it.
+	//ahost, aport, err := utils.ParseAdvertiseAddr(advertiseIP)
+	//if err != nil {
+	//	log.Warningf("Failed to parse advertise address '%v': %v. Using default value '%v'.", advertiseIP, err, s.addr.Addr)
+	//	return s.addr.Address()
+	//}
+	//if aport == "" {
+	//	_, aport, err = net.SplitHostPort(s.addr.Address())
+	//	aport = port
+	//}
+	//return fmt.Sprintf("%v:%v", ahost, aport)
 }
 
 func (s *Server) getRole() teleport.Role {

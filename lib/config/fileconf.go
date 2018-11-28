@@ -243,7 +243,7 @@ func MakeSampleFileConfig() (fc *FileConfig) {
 	g.AuthToken = "cluster-join-token"
 	g.Logger.Output = "stderr"
 	g.Logger.Severity = "INFO"
-	g.AuthServers = []string{defaults.AuthListenAddr().Addr}
+	g.AuthServers = []string{defaults.AuthListenAddr().Address()}
 	g.Limits.MaxConnections = defaults.LimiterMaxConnections
 	g.Limits.MaxUsers = defaults.LimiterMaxConcurrentUsers
 	g.DataDir = defaults.DataDir
@@ -252,7 +252,7 @@ func MakeSampleFileConfig() (fc *FileConfig) {
 	// sample SSH config:
 	var s SSH
 	s.EnabledFlag = "yes"
-	s.ListenAddress = conf.SSH.Addr.Addr
+	s.ListenAddress = conf.SSH.Addr.Address()
 	s.Commands = []CommandLabel{
 		{
 			Name:    "hostname",
@@ -272,16 +272,16 @@ func MakeSampleFileConfig() (fc *FileConfig) {
 
 	// sample Auth config:
 	var a Auth
-	a.ListenAddress = conf.Auth.SSHAddr.Addr
+	a.ListenAddress = conf.Auth.SSHAddr.Address()
 	a.EnabledFlag = "yes"
 	a.StaticTokens = []StaticToken{"proxy,node:cluster-join-token"}
 
 	// sample proxy config:
 	var p Proxy
 	p.EnabledFlag = "yes"
-	p.ListenAddress = conf.Proxy.SSHAddr.Addr
-	p.WebAddr = conf.Proxy.WebAddr.Addr
-	p.TunAddr = conf.Proxy.ReverseTunnelListenAddr.Addr
+	p.ListenAddress = conf.Proxy.SSHAddr.Address()
+	p.WebAddr = conf.Proxy.WebAddr.Address()
+	p.TunAddr = conf.Proxy.ReverseTunnelListenAddr.Address()
 	p.CertFile = "/var/lib/teleport/webproxy_cert.pem"
 	p.KeyFile = "/var/lib/teleport/webproxy_key.pem"
 

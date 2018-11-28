@@ -24,6 +24,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 
+	"github.com/gravitational/trace"
+
 	"gopkg.in/check.v1"
 )
 
@@ -45,9 +47,10 @@ func (s *LBSuite) TestSingleBackendLB(c *check.C) {
 	ports, err := GetFreeTCPPorts(1)
 	c.Assert(err, check.IsNil)
 
-	frontend := localAddr(ports[0])
+	frontend, err := localAddr(ports[0])
+	c.Assert(err, check.IsNil)
 
-	lb, err := NewLoadBalancer(context.TODO(), frontend, urlToNetAddr(backend1.URL))
+	lb, err := NewLoadBalancer(context.TODO(), frontend, urlToNetAddr(c, backend1.URL))
 	c.Assert(err, check.IsNil)
 	err = lb.Listen()
 	c.Assert(err, check.IsNil)
@@ -70,12 +73,13 @@ func (s *LBSuite) TestTwoBackendsLB(c *check.C) {
 	}))
 	defer backend2.Close()
 
-	backend1Addr, backend2Addr := urlToNetAddr(backend1.URL), urlToNetAddr(backend2.URL)
+	backend1Addr, backend2Addr := urlToNetAddr(c, backend1.URL), urlToNetAddr(c, backend2.URL)
 
 	ports, err := GetFreeTCPPorts(1)
 	c.Assert(err, check.IsNil)
 
-	frontend := localAddr(ports[0])
+	frontend, err := localAddr(ports[0])
+	c.Assert(err, check.IsNil)
 
 	lb, err := NewLoadBalancer(context.TODO(), frontend)
 	c.Assert(err, check.IsNil)
@@ -110,12 +114,13 @@ func (s *LBSuite) TestOneFailingBackend(c *check.C) {
 	}))
 	backend2.Close()
 
-	backend1Addr, backend2Addr := urlToNetAddr(backend1.URL), urlToNetAddr(backend2.URL)
+	backend1Addr, backend2Addr := urlToNetAddr(c, backend1.URL), urlToNetAddr(c, backend2.URL)
 
 	ports, err := GetFreeTCPPorts(1)
 	c.Assert(err, check.IsNil)
 
-	frontend := localAddr(ports[0])
+	frontend, err := localAddr(ports[0])
+	c.Assert(err, check.IsNil)
 
 	lb, err := NewLoadBalancer(context.TODO(), frontend)
 	c.Assert(err, check.IsNil)
@@ -148,9 +153,10 @@ func (s *LBSuite) TestClose(c *check.C) {
 	ports, err := GetFreeTCPPorts(1)
 	c.Assert(err, check.IsNil)
 
-	frontend := localAddr(ports[0])
+	frontend, err := localAddr(ports[0])
+	c.Assert(err, check.IsNil)
 
-	lb, err := NewLoadBalancer(context.TODO(), frontend, urlToNetAddr(backend1.URL))
+	lb, err := NewLoadBalancer(context.TODO(), frontend, urlToNetAddr(c, backend1.URL))
 	c.Assert(err, check.IsNil)
 	err = lb.Listen()
 	c.Assert(err, check.IsNil)
@@ -181,9 +187,10 @@ func (s *LBSuite) TestDropConnections(c *check.C) {
 	ports, err := GetFreeTCPPorts(1)
 	c.Assert(err, check.IsNil)
 
-	frontend := localAddr(ports[0])
+	frontend, err := localAddr(ports[0])
+	c.Assert(err, check.IsNil)
 
-	backendAddr := urlToNetAddr(backend1.URL)
+	backendAddr := urlToNetAddr(c, backend1.URL)
 	lb, err := NewLoadBalancer(context.TODO(), frontend, backendAddr)
 	c.Assert(err, check.IsNil)
 	err = lb.Listen()
@@ -210,18 +217,25 @@ func (s *LBSuite) TestDropConnections(c *check.C) {
 	c.Assert(err, check.NotNil)
 }
 
-func urlToNetAddr(u string) NetAddr {
+func urlToNetAddr(c *check.C, u string) NetAddr {
 	parsed, err := url.Parse(u)
-	if err != nil {
-		panic(err)
-	}
-	return *MustParseAddr(parsed.Host)
+	c.Assert(err, check.IsNil)
+
+	netAddr, err := ParseAddr(parsed.Host)
+	c.Assert(err, check.IsNil)
+
+	return *netAddr
 }
 
 func localURL(port string) string {
 	return fmt.Sprintf("http://127.0.0.1:%v", port)
 }
 
-func localAddr(port string) NetAddr {
-	return *MustParseAddr(fmt.Sprintf("127.0.0.1:%v", port))
+func localAddr(port string) (NetAddr, error) {
+	netAddr, err := ParseAddr(fmt.Sprintf("127.0.0.1:%v", port))
+	if err != nil {
+		return NetAddr{}, trace.Wrap(err)
+	}
+
+	return *netAddr, nil
 }

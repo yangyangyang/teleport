@@ -18,122 +18,159 @@ package utils
 
 import (
 	"net"
-	"strings"
 	"testing"
 
-	. "gopkg.in/check.v1"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/check.v1"
 )
 
-func TestAddrStruct(t *testing.T) { TestingT(t) }
+func TestAddrStruct(t *testing.T) { check.TestingT(t) }
 
 type AddrTestSuite struct {
 }
 
-var _ = Suite(&AddrTestSuite{})
+var _ = check.Suite(&AddrTestSuite{})
 
-func (s *AddrTestSuite) TestParseHostPort(c *C) {
+func (s *AddrTestSuite) TestParseHostPort(c *check.C) {
 	// success
 	addr, err := ParseHostPortAddr("localhost:22", -1)
-	c.Assert(err, IsNil)
-	c.Assert(addr.AddrNetwork, Equals, "tcp")
-	c.Assert(addr.Addr, Equals, "localhost:22")
+	c.Assert(err, check.IsNil)
+	c.Assert(addr.AddrNetwork, check.Equals, "tcp")
+	c.Assert(addr.Addr, check.Equals, "localhost:22")
 
 	// scheme + existing port
 	addr, err = ParseHostPortAddr("https://localhost", 443)
-	c.Assert(err, IsNil)
-	c.Assert(addr.AddrNetwork, Equals, "https")
-	c.Assert(addr.Addr, Equals, "localhost:443")
+	c.Assert(err, check.IsNil)
+	c.Assert(addr.AddrNetwork, check.Equals, "https")
+	c.Assert(addr.Addr, check.Equals, "localhost:443")
 
 	// success
 	addr, err = ParseHostPortAddr("localhost", 1111)
-	c.Assert(err, IsNil)
-	c.Assert(addr.AddrNetwork, Equals, "tcp")
-	c.Assert(addr.Addr, Equals, "localhost:1111")
+	c.Assert(err, check.IsNil)
+	c.Assert(addr.AddrNetwork, check.Equals, "tcp")
+	c.Assert(addr.Addr, check.Equals, "localhost:1111")
 
 	// missing port
 	addr, err = ParseHostPortAddr("localhost", -1)
-	c.Assert(err, NotNil)
-	c.Assert(addr, IsNil)
+	c.Assert(err, check.NotNil)
+	c.Assert(addr, check.IsNil)
 
 	// scheme + missing port
 	_, err = ParseHostPortAddr("https://localhost", -1)
-	c.Assert(err, NotNil)
+	c.Assert(err, check.NotNil)
 }
 
-func (s *AddrTestSuite) TestEmpty(c *C) {
+func (s *AddrTestSuite) TestEmpty(c *check.C) {
 	var a NetAddr
-	c.Assert(a.IsEmpty(), Equals, true)
+	c.Assert(a.IsEmpty(), check.Equals, true)
 }
 
-func (s *AddrTestSuite) TestParse(c *C) {
-	addr, err := ParseAddr("tcp://one:25/path")
-	c.Assert(err, IsNil)
-	c.Assert(addr, NotNil)
-	c.Assert(addr.Addr, Equals, "one:25")
-	c.Assert(addr.Path, Equals, "/path")
-	c.Assert(addr.FullAddress(), Equals, "tcp://one:25")
-	c.Assert(addr.IsEmpty(), Equals, false)
-	c.Assert(addr.Host(), Equals, "one")
-	c.Assert(addr.Port(0), Equals, 25)
+func (s *AddrTestSuite) TestParseAddr(c *check.C) {
+	var tests = []struct {
+		inAddr         string
+		outError       bool
+		outAddrNetwork string
+		outAddr        string
+		outPath        string
+		outString      string
+		outIsEmpty     bool
+		outHost        string
+		outPort        int
+	}{
+		// Unix socket.
+		{
+			inAddr:         "/path",
+			outError:       false,
+			outAddrNetwork: "unix",
+			outAddr:        "",
+			outPath:        "/path",
+			outString:      "/path",
+			outIsEmpty:     false,
+			outHost:        "",
+			outPort:        0,
+		},
+		// Host.
+		{
+			inAddr:         "example.com",
+			outError:       false,
+			outAddrNetwork: "tcp",
+			outAddr:        "example.com",
+			outPath:        "",
+			outString:      "example.com",
+			outIsEmpty:     false,
+			outHost:        "example.com",
+			outPort:        0,
+		},
+
+		// IPv4.
+		{
+			inAddr:         "10.10.10.10:49870",
+			outError:       false,
+			outAddrNetwork: "tcp",
+			outAddr:        "10.10.10.10:49870",
+			outPath:        "",
+			outString:      "10.10.10.10:49870",
+			outIsEmpty:     false,
+			outHost:        "10.10.10.10",
+			outPort:        49870,
+		},
+		// IPv6.
+		{
+			inAddr:         "[::1]:49870",
+			outError:       false,
+			outAddrNetwork: "tcp",
+			outAddr:        "[::1]:49870",
+			outPath:        "",
+			outString:      "[::1]:49870",
+			outIsEmpty:     false,
+			outHost:        "::1",
+			outPort:        49870,
+		},
+		// HTTP.
+		{
+			inAddr:         "http://www.example.com:8080/path",
+			outError:       false,
+			outAddrNetwork: "http",
+			outAddr:        "www.example.com:8080",
+			outPath:        "/path",
+			outString:      "www.example.com:8080",
+			outIsEmpty:     false,
+			outHost:        "www.example.com",
+			outPort:        8080,
+		},
+	}
+
+	for _, tt := range tests {
+		addr, err := ParseAddr(tt.inAddr)
+		if tt.outError {
+			c.Assert(err, check.NotNil)
+			continue
+		} else {
+			c.Assert(err, check.IsNil)
+			c.Assert(addr, check.NotNil)
+			c.Assert(addr.IsEmpty(), check.Equals, tt.outIsEmpty)
+		}
+
+		c.Assert(addr.Addr, check.Equals, tt.outAddr)
+		c.Assert(addr.Path, check.Equals, tt.outPath)
+		c.Assert(addr.String(), check.Equals, tt.outString)
+		c.Assert(addr.Host(), check.Equals, tt.outHost)
+		c.Assert(addr.Port(0), check.Equals, tt.outPort)
+	}
 }
 
-func (s *AddrTestSuite) TestParseIPV6(c *C) {
-	addr, err := ParseAddr("[::1]:49870")
-	c.Assert(err, IsNil)
-	c.Assert(addr, NotNil)
-	c.Assert(addr.Addr, Equals, "[::1]:49870")
-	c.Assert(addr.Path, Equals, "")
-	c.Assert(addr.FullAddress(), Equals, "tcp://[::1]:49870")
-	c.Assert(addr.IsEmpty(), Equals, false)
-	c.Assert(addr.Host(), Equals, "::1")
-	c.Assert(addr.Port(0), Equals, 49870)
-}
-
-func (s *AddrTestSuite) TestParseEmptyPort(c *C) {
-	addr, err := ParseAddr("one")
-	c.Assert(err, IsNil)
-	c.Assert(addr, NotNil)
-	c.Assert(addr.Addr, Equals, "one")
-	c.Assert(addr.Path, Equals, "")
-	c.Assert(addr.FullAddress(), Equals, "tcp://one")
-	c.Assert(addr.IsEmpty(), Equals, false)
-	c.Assert(addr.Host(), Equals, "one")
-	c.Assert(addr.Port(443), Equals, 443)
-}
-
-func (s *AddrTestSuite) TestParseHTTP(c *C) {
-	addr, err := ParseAddr("http://one:25/path")
-	c.Assert(err, IsNil)
-	c.Assert(addr, NotNil)
-	c.Assert(addr.Addr, Equals, "one:25")
-	c.Assert(addr.Path, Equals, "/path")
-	c.Assert(addr.FullAddress(), Equals, "http://one:25")
-	c.Assert(addr.IsEmpty(), Equals, false)
-}
-
-func (s *AddrTestSuite) TestParseDefaults(c *C) {
-	addr, err := ParseAddr("host:25")
-	c.Assert(err, IsNil)
-	c.Assert(addr, NotNil)
-	c.Assert(addr.Addr, Equals, "host:25")
-	c.Assert(addr.FullAddress(), Equals, "tcp://host:25")
-	c.Assert(addr.IsEmpty(), Equals, false)
-}
-
-func (s *AddrTestSuite) TestReplaceLocalhost(c *C) {
+func (s *AddrTestSuite) TestReplaceLocalhost(c *check.C) {
 	var result string
 	result = ReplaceLocalhost("10.10.1.1", "192.168.1.100:399")
-	c.Assert(result, Equals, "10.10.1.1")
+	c.Assert(result, check.Equals, "10.10.1.1")
 	result = ReplaceLocalhost("10.10.1.1:22", "192.168.1.100:399")
-	c.Assert(result, Equals, "10.10.1.1:22")
+	c.Assert(result, check.Equals, "10.10.1.1:22")
 	result = ReplaceLocalhost("127.0.0.1:22", "192.168.1.100:399")
-	c.Assert(result, Equals, "192.168.1.100:22")
+	c.Assert(result, check.Equals, "192.168.1.100:22")
 	result = ReplaceLocalhost("0.0.0.0:22", "192.168.1.100:399")
-	c.Assert(result, Equals, "192.168.1.100:22")
+	c.Assert(result, check.Equals, "192.168.1.100:22")
 }
 
-func (s *AddrTestSuite) TestLocalAddrs(c *C) {
+func (s *AddrTestSuite) TestLocalAddrs(c *check.C) {
 	testCases := []struct {
 		in       string
 		expected bool
@@ -147,13 +184,13 @@ func (s *AddrTestSuite) TestLocalAddrs(c *C) {
 	}
 	for i, testCase := range testCases {
 		addr, err := ParseAddr(testCase.in)
-		c.Assert(err, IsNil)
-		c.Assert(addr.IsLocal(), Equals, testCase.expected,
-			Commentf("test case %v, %v should be local(%v)", i, testCase.in, testCase.expected))
+		c.Assert(err, check.IsNil)
+		c.Assert(addr.IsLocal(), check.Equals, testCase.expected,
+			check.Commentf("test case %v, %v should be local(%v)", i, testCase.in, testCase.expected))
 	}
 }
 
-func (s *AddrTestSuite) TestLoopbackAddrs(c *C) {
+func (s *AddrTestSuite) TestLoopbackAddrs(c *check.C) {
 	testCases := []struct {
 		in       string
 		expected bool
@@ -166,12 +203,12 @@ func (s *AddrTestSuite) TestLoopbackAddrs(c *C) {
 		{in: "bad-host.example.com:443", expected: false},
 	}
 	for i, testCase := range testCases {
-		c.Assert(IsLoopback(testCase.in), Equals, testCase.expected,
-			Commentf("test case %v, %v should be loopback(%v)", i, testCase.in, testCase.expected))
+		c.Assert(IsLoopback(testCase.in), check.Equals, testCase.expected,
+			check.Commentf("test case %v, %v should be loopback(%v)", i, testCase.in, testCase.expected))
 	}
 }
 
-func (s *AddrTestSuite) TestGuessesIPAddress(c *C) {
+func (s *AddrTestSuite) TestGuessesIPAddress(c *check.C) {
 	var testCases = []struct {
 		addrs    []net.Addr
 		expected net.IP
@@ -243,44 +280,6 @@ func (s *AddrTestSuite) TestGuessesIPAddress(c *C) {
 	}
 	for _, testCase := range testCases {
 		ip := guessHostIP(testCase.addrs)
-		c.Assert(ip, DeepEquals, testCase.expected, Commentf(testCase.comment))
-	}
-}
-
-func (s *AddrTestSuite) TestMarshal(c *C) {
-	testCases := []struct {
-		in       *NetAddr
-		expected string
-	}{
-		{in: &NetAddr{Addr: "localhost:5000"}, expected: "localhost:5000"},
-		{in: &NetAddr{AddrNetwork: "tcp", Addr: "localhost:5000"}, expected: "tcp://localhost:5000"},
-		{in: &NetAddr{AddrNetwork: "tcp", Addr: "localhost:5000", Path: "/path"}, expected: "tcp://localhost:5000/path"},
-		{in: &NetAddr{AddrNetwork: "unix", Path: "/path"}, expected: "unix:///path"},
-	}
-
-	for i, testCase := range testCases {
-		bytes, err := yaml.Marshal(testCase.in)
-		c.Assert(err, IsNil)
-		c.Assert(strings.TrimSpace(string(bytes)), Equals, testCase.expected,
-			Commentf("test case %v, %v should be marshalled to: %v", i, testCase.in, testCase.expected))
-	}
-}
-
-func (s *AddrTestSuite) TestUnmarshal(c *C) {
-	testCases := []struct {
-		in       string
-		expected *NetAddr
-	}{
-		{in: "localhost:5000", expected: &NetAddr{AddrNetwork: "tcp", Addr: "localhost:5000"}},
-		{in: "tcp://localhost:5000/path", expected: &NetAddr{AddrNetwork: "tcp", Addr: "localhost:5000", Path: "/path"}},
-		{in: "unix:///path", expected: &NetAddr{AddrNetwork: "unix", Addr: "/path"}},
-	}
-
-	for i, testCase := range testCases {
-		addr := &NetAddr{}
-		err := yaml.Unmarshal([]byte(testCase.in), addr)
-		c.Assert(err, IsNil)
-		c.Assert(addr, DeepEquals, testCase.expected,
-			Commentf("test case %v, %v should be unmarshalled to: %v", i, testCase.in, testCase.expected))
+		c.Assert(ip, check.DeepEquals, testCase.expected, check.Commentf(testCase.comment))
 	}
 }
