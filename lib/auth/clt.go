@@ -113,11 +113,11 @@ func NewAddrDialer(addrs []utils.NetAddr) DialContext {
 		var err error
 		var conn net.Conn
 		for _, addr := range addrs {
-			conn, err = dialer.DialContext(in, network, addr.Address())
+			conn, err = dialer.DialContext(in, network, addr.String())
 			if err == nil {
 				return conn, nil
 			}
-			log.Debugf("Failed to dial auth server %v: %v.", addr.Address(), err)
+			log.Debugf("Failed to dial auth server %v: %v.", addr.String(), err)
 		}
 		// not wrapping on purpose to preserve the original error
 		return nil, err

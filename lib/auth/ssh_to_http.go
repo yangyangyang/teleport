@@ -65,7 +65,10 @@ func (conn *FakeSSHConnection) RemoteAddr() net.Addr {
 }
 
 func (conn *FakeSSHConnection) LocalAddr() net.Addr {
-	return utils.NewNetAddr("tcp", "socket.over.ssh", "")
+	// TODO: fix this
+	netAddr, _ := utils.ParseAddr("socket.over.ssh:0", "")
+	return netAddr
+
 }
 
 // SetDeadline is needed to implement net.Conn interface
@@ -106,5 +109,7 @@ func (socket *fakeSocket) Close() error {
 
 // Addr returns the listener's network address.
 func (socket *fakeSocket) Addr() net.Addr {
-	return utils.NewNetAddr("tcp", "socket.over.ssh", "")
+	// TODO: fix this
+	netAddr, _ := utils.ParseAddr("socket.over.ssh:0", "")
+	return netAddr
 }

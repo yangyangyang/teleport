@@ -228,7 +228,7 @@ func (s *Server) Serve(listener net.Listener) error {
 }
 
 func (s *Server) Start() error {
-	listener, err := net.Listen(s.addr.Network(), s.addr.Address())
+	listener, err := net.Listen(s.addr.Network(), s.addr.String())
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
@@ -451,10 +451,6 @@ type AuthMethods struct {
 }
 
 func checkArguments(a utils.NetAddr, h NewChanHandler, hostSigners []ssh.Signer, ah AuthMethods) error {
-	if a.IsEmpty() {
-		return trace.BadParameter("addr: specify network and the address for listening socket")
-	}
-
 	if h == nil {
 		return trace.BadParameter("missing NewChanHandler")
 	}
@@ -546,7 +542,7 @@ func (c *connectionWrapper) Read(b []byte) (int, error) {
 			if err = json.Unmarshal(payload, &hp); err != nil {
 				log.Error(err)
 			} else {
-				ca, err := utils.ParseAddr(hp.ClientAddr)
+				ca, err := utils.ParseAddr(hp.ClientAddr, "0")
 				if err != nil {
 					log.Error(err)
 				} else {

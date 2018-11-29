@@ -169,7 +169,7 @@ func (l *LoadBalancer) ListenAndServe() error {
 // Listen creates a listener on the frontend addr
 func (l *LoadBalancer) Listen() error {
 	var err error
-	l.listener, err = net.Listen(l.frontend.Network(), l.frontend.Address())
+	l.listener, err = net.Listen(l.frontend.Network(), l.frontend.String())
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}
@@ -223,7 +223,7 @@ func (l *LoadBalancer) forward(conn net.Conn) error {
 	connID := l.trackConnection(*backend, conn)
 	defer l.untrackConnection(*backend, connID)
 
-	backendConn, err := net.Dial(backend.Network(), backend.Address())
+	backendConn, err := net.Dial(backend.Network(), backend.String())
 	if err != nil {
 		return trace.ConvertSystemError(err)
 	}

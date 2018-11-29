@@ -3,6 +3,7 @@ package services
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -145,7 +146,7 @@ func (r *ReverseTunnelV2) Check() error {
 	}
 
 	for _, addr := range r.Spec.DialAddrs {
-		_, err := utils.ParseAddr(addr)
+		_, err := utils.ParseAddr(addr, strconv.Itoa(defaults.SSHProxyListenPort))
 		if err != nil {
 			return trace.Wrap(err)
 		}

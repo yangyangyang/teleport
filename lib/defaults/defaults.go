@@ -20,6 +20,7 @@ package defaults
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/gravitational/teleport/lib/limiter"
@@ -409,10 +410,10 @@ func ReverseTunnellListenAddr() *utils.NetAddr {
 }
 
 func makeAddr(host string, port int16) *utils.NetAddr {
-	addrSpec := fmt.Sprintf("tcp://%s:%d", host, port)
-	retval, err := utils.ParseAddr(addrSpec)
+	//addrSpec := fmt.Sprintf("tcp://%s:%d", host, port)
+	retval, err := utils.ParseAddr(host, strconv.Itoa(int(port)))
 	if err != nil {
-		panic(fmt.Sprintf("%s: error parsing '%v'", initError, addrSpec))
+		panic(fmt.Sprintf("%s: error parsing %v:%v", initError, host, port))
 	}
 	return retval
 }

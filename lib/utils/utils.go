@@ -435,7 +435,7 @@ func (s Strings) MarshalYAML() (interface{}, error) {
 func (s Strings) Addrs(defaultPort int) ([]NetAddr, error) {
 	addrs := make([]NetAddr, len(s))
 	for i, val := range s {
-		addr, err := ParseHostPortAddr(val, defaultPort)
+		addr, err := ParseAddr(val, strconv.Itoa(defaultPort))
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}

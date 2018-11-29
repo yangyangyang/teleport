@@ -605,9 +605,9 @@ func (c *Config) ParseProxyHost(proxyHost string) error {
 // KubeProxyHostPort returns the host and port of the Kubernetes proxy.
 func (c *Config) KubeProxyHostPort() (string, int) {
 	if c.KubeProxyAddr != "" {
-		addr, err := utils.ParseAddr(c.KubeProxyAddr)
+		addr, err := utils.ParseAddr(c.KubeProxyAddr, defaults.KubeProxyListenPort)
 		if err == nil {
-			return addr.Host(), addr.Port(defaults.KubeProxyListenPort)
+			return addr.String()
 		}
 	}
 

@@ -24,12 +24,12 @@ import (
 func StartHTTPServer(addr NetAddr, h http.Handler) error {
 	if addr.Network() == "tcp" {
 		hsrv := &http.Server{
-			Addr:    addr.Address(),
+			Addr:    addr.String(),
 			Handler: h,
 		}
 		return hsrv.ListenAndServe()
 	}
-	l, err := net.Listen(addr.Network(), addr.Address())
+	l, err := net.Listen(addr.Network(), addr.String())
 	if err != nil {
 		return err
 	}
