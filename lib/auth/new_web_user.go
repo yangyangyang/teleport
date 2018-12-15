@@ -25,6 +25,7 @@ package auth
 
 import (
 	"bytes"
+	"fmt"
 	"image/png"
 	"time"
 
@@ -70,12 +71,12 @@ func (s *AuthServer) CreateSignupToken(userv1 services.UserV1, ttl time.Duration
 		}
 	}
 
-	// TODO(rjones): TOCTOU, instead try to create signup token for user and fail
-	// when unable to.
-	_, err := s.GetPasswordHash(user.GetName())
-	if err == nil {
-		return "", trace.BadParameter("user '%s' already exists", user.GetName())
-	}
+	//// TODO(rjones): TOCTOU, instead try to create signup token for user and fail
+	//// when unable to.
+	//_, err := s.GetPasswordHash(user.GetName())
+	//if err == nil {
+	//	return "", trace.BadParameter("user '%s' already exists", user.GetName())
+	//}
 
 	token, err := utils.CryptoRandomHex(TokenLenBytes)
 	if err != nil {
@@ -168,6 +169,7 @@ func (s *AuthServer) rotateAndFetchSignupToken(token string) (*services.SignupTo
 // GetSignupTokenData returns token data (username and QR code bytes) for a
 // valid signup token.
 func (s *AuthServer) GetSignupTokenData(token string) (user string, qrCode []byte, err error) {
+	fmt.Printf("--> GetSignupTokenData: Enter\n")
 	// Rotate OTP secret before the signup data is fetched (signup page is
 	// rendered). This mitigates attacks where an attacker just views the signup
 	// link, extracts the OTP secret from the QR code, then closes the window.
@@ -178,13 +180,14 @@ func (s *AuthServer) GetSignupTokenData(token string) (user string, qrCode []byt
 		return "", nil, trace.Wrap(err)
 	}
 
-	// TODO(rjones): Remove this check and use compare and swap in the Create*
-	// functions below. It's a TOCTOU bug in the making:
-	// https://en.wikipedia.org/wiki/Time_of_check_to_time_of_use
-	_, err = s.GetPasswordHash(st.User.Name)
-	if err == nil {
-		return "", nil, trace.Errorf("user %q already exists", st.User.Name)
-	}
+	//// TODO(rjones): Remove this check and use compare and swap in the Create*
+	//// functions below. It's a TOCTOU bug in the making:
+	//// https://en.wikipedia.org/wiki/Time_of_check_to_time_of_use
+	//_, err = s.GetPasswordHash(st.User.Name)
+	//if err == nil {
+	//	return "", nil, trace.Errorf("user %q already exists", st.User.Name)
+	//}
+	fmt.Printf("--> GetSignupTokenData: Returning %v.\n", st.User.Name)
 
 	return st.User.Name, st.OTPQRCode, nil
 }

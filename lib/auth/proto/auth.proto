@@ -42,8 +42,13 @@ message Watch {
 service AuthService {
     // SendKeepAlives allows node to send a stream of keep alive requests
     rpc SendKeepAlives(stream services.KeepAlive) returns (google.protobuf.Empty);
+
     // WatchEvents returns a new stream of cluster events
     rpc WatchEvents(Watch) returns (stream Event);
+
     // UpsertNode upserts node
     rpc UpsertNode(services.ServerV2) returns (services.KeepAlive);
+
+    // GetSignupTokens returns all the user signup tokens in the cluster.
+    rpc GetSignupTokens(google.protobuf.Empty) returns (stream services.SignupToken);
 }

@@ -1407,16 +1407,29 @@ func (c *Client) CreateSignupToken(user services.UserV1, ttl time.Duration) (str
 
 // GetSignupTokens returns all the user signup tokens in the cluster.
 func (c *Client) GetSignupTokens() ([]services.SignupToken, error) {
-	out, err := c.Get(c.Endpoint("signuptokens"), url.Values{})
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	return nil, nil
+	//clt, err := c.grpc()
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
 
-	var tokens []services.SignupToken
-	if err := json.Unmarshal(out.Bytes(), &tokens); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return tokens, nil
+	//response, err := clt.GetSignupTokens(context.TODO(), &empty.Empty{})
+	//if err != nil {
+	//	return nil, trail.FromGRPC(err)
+	//}
+
+	//return response.Tokens, nil
+
+	//out, err := c.Get(c.Endpoint("signuptokens"), url.Values{})
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+
+	//var tokens []services.SignupToken
+	//if err := json.Unmarshal(out.Bytes(), &tokens); err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+	//return tokens, nil
 }
 
 // GetSignupTokenData returns token data for a valid token

@@ -18,6 +18,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -120,6 +121,22 @@ func (g *GRPCServer) UpsertNode(ctx context.Context, server *services.ServerV2) 
 	}
 	return keepAlive, nil
 }
+
+//func (g *GRPCServer) GetSignupTokens(empty *empty.Empty, stream proto.AuthService_WatchEventsServer) error {
+//	return nil
+//	//fmt.Printf("--> GRPC: GetSignupTokens.")
+//	//auth, err := g.authenticate(ctx)
+//	//if err != nil {
+//	//	return nil, trail.ToGRPC(err)
+//	//}
+//
+//	//tokens, err := auth.GetSignupTokens()
+//	//if err != nil {
+//	//	return nil, trail.ToGRPC(err)
+//	//}
+//
+//	//return tokens, nil
+//}
 
 type grpcContext struct {
 	*AuthContext

@@ -1,4 +1,5 @@
-FROM golang:1.7-wheezy
+#FROM golang:1.7-wheezy
+FROM golang:1.11.3-stretch
 
 ARG PROTOC_VER
 ARG GOGO_PROTO_TAG

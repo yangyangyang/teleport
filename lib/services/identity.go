@@ -227,21 +227,21 @@ func VerifyPassword(password []byte) error {
 	return nil
 }
 
-// SignupToken stores metadata about user signup token
-// is stored and generated when tctl add user is executed
-type SignupToken struct {
-	Token     string    `json:"token"`
-	User      UserV1    `json:"user"`
-	OTPKey    string    `json:"otp_key"`
-	OTPQRCode []byte    `json:"otp_qr_code"`
-	Expires   time.Time `json:"expires"`
-}
-
-// String returns a human readable version of the user signup token.
-func (s SignupToken) String() string {
-	return fmt.Sprintf("SignupToken(User=%v, expires=%v)",
-		s.User.V2().GetName(), s.Expires)
-}
+//// SignupToken stores metadata about user signup token
+//// is stored and generated when tctl add user is executed
+//type SignupToken struct {
+//	Token     string    `json:"token"`
+//	User      UserV1    `json:"user"`
+//	OTPKey    string    `json:"otp_key"`
+//	OTPQRCode []byte    `json:"otp_qr_code"`
+//	Expires   time.Time `json:"expires"`
+//}
+//
+//// String returns a human readable version of the user signup token.
+//func (s SignupToken) String() string {
+//	return fmt.Sprintf("SignupToken(User=%v, expires=%v)",
+//		s.User.V2().GetName(), s.Expires)
+//}
 
 // OIDCIdentity is OpenID Connect identity that is linked
 // to particular user and connector and lets user to log in using external
