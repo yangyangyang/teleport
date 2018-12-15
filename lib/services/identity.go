@@ -122,17 +122,26 @@ type Identity interface {
 	// UpsertPassword upserts new password and OTP token
 	UpsertPassword(user string, password []byte) error
 
-	// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
-	UpsertSignupToken(token string, tokenData SignupToken, ttl time.Duration) error
+	////////////////////////////////////////////
 
-	// GetSignupToken returns signup token data
-	GetSignupToken(token string) (*SignupToken, error)
+	UpsertSignupToken(context.Context, Token) error
+	GetSignupToken(context.Context, string) (*Token, error)
+	GetSignupTokens(context.Context) ([]Token, error)
+	DeleteSignupToken(context.Context, string) error
 
-	// GetSignupTokens returns a list of signup tokens
-	GetSignupTokens() ([]SignupToken, error)
+	//// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
+	//UpsertSignupToken(token string, tokenData SignupToken, ttl time.Duration) error
 
-	// DeleteSignupToken deletes signup token from the storage
-	DeleteSignupToken(token string) error
+	//// GetSignupToken returns signup token data
+	//GetSignupToken(token string) (*SignupToken, error)
+
+	//// GetSignupTokens returns a list of signup tokens
+	//GetSignupTokens() ([]SignupToken, error)
+
+	//// DeleteSignupToken deletes signup token from the storage
+	//DeleteSignupToken(token string) error
+
+	////////////////////////////////////////////
 
 	// UpsertU2FRegisterChallenge upserts a U2F challenge for a new user corresponding to the token
 	UpsertU2FRegisterChallenge(token string, u2fChallenge *u2f.Challenge) error
@@ -227,21 +236,21 @@ func VerifyPassword(password []byte) error {
 	return nil
 }
 
-//// SignupToken stores metadata about user signup token
-//// is stored and generated when tctl add user is executed
-//type SignupToken struct {
-//	Token     string    `json:"token"`
-//	User      UserV1    `json:"user"`
-//	OTPKey    string    `json:"otp_key"`
-//	OTPQRCode []byte    `json:"otp_qr_code"`
-//	Expires   time.Time `json:"expires"`
-//}
-//
-//// String returns a human readable version of the user signup token.
-//func (s SignupToken) String() string {
-//	return fmt.Sprintf("SignupToken(User=%v, expires=%v)",
-//		s.User.V2().GetName(), s.Expires)
-//}
+// SignupToken stores metadata about user signup token
+// is stored and generated when tctl add user is executed
+type SignupToken struct {
+	Token     string    `json:"token"`
+	User      UserV1    `json:"user"`
+	OTPKey    string    `json:"otp_key"`
+	OTPQRCode []byte    `json:"otp_qr_code"`
+	Expires   time.Time `json:"expires"`
+}
+
+// String returns a human readable version of the user signup token.
+func (s SignupToken) String() string {
+	return fmt.Sprintf("SignupToken(User=%v, expires=%v)",
+		s.User.V2().GetName(), s.Expires)
+}
 
 // OIDCIdentity is OpenID Connect identity that is linked
 // to particular user and connector and lets user to log in using external

@@ -36,6 +36,8 @@ import (
 	"google.golang.org/grpc/grpclog"
 )
 
+var _ = fmt.Printf
+
 func init() {
 	grpclog.SetLoggerV2(&GLogger{
 		Entry: logrus.WithFields(
@@ -120,6 +122,73 @@ func (g *GRPCServer) UpsertNode(ctx context.Context, server *services.ServerV2) 
 		return nil, trail.ToGRPC(err)
 	}
 	return keepAlive, nil
+}
+
+func (g *GRPCServer) UpsertSignupToken(ctx context.Context, token *services.TokenV2) (*empty.Empty, error) {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
+	err := auth.UpsertSignupToken(ctx, token, backend.Forever)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	return nil, nil
+}
+
+func (g *GRPCServer) GetSignupToken(ctx context.Context, req *proto.GetSignupTokenRequest) (*services.TokenV2, error) {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
+	token, err = auth.GetSignupToken(ctx, req.Token)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	return token, nil
+}
+
+func (g *GRPCServer) GetSignupTokens(req *empty.Empty, stream proto.AuthService_GetSignupTokensServer) error {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return trail.ToGRPC(err)
+	}
+
+	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
+	tokens, err := auth.GetSignupTokens(ctx)
+	if err != nil {
+		return trail.ToGRPC(err)
+	}
+
+	for _, token := range tokens {
+		err = stream.Send(token)
+		if err != nil {
+			return trail.ToGRPC(err)
+		}
+	}
+
+	return nil
+}
+
+func (g *GRPCServer) DeleteSignupToken(ctx context.Context, req *proto.DeleteSignupTokenRequest) (*empty.Empty, error) {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
+	err = auth.DeleteSignupToken(ctx, req.Token)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	return nil, nil
 }
 
 //func (g *GRPCServer) GetSignupTokens(empty *empty.Empty, stream proto.AuthService_WatchEventsServer) error {

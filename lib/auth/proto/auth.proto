@@ -3,6 +3,7 @@ package proto;
 
 import "gogoproto/gogo.proto";
 import "google/protobuf/empty.proto";
+//import "google/protobuf/duration.proto";
 import "github.com/gravitational/teleport/lib/services/types.proto";
 
 option (gogoproto.marshaler_all) = true;
@@ -38,6 +39,14 @@ message Watch {
     repeated string Kinds = 1 [(gogoproto.jsontag) = "kinds,omitempty"];
 }
 
+message GetSignupTokenRequest {
+    string Token = 1 [(gogoproto.jsontag) = "token"];
+}
+
+message DeleteSignupTokenRequest {
+    string Token = 1 [(gogoproto.jsontag) = "token"];
+}
+
 // AuthService is authentication/authorization service implementation
 service AuthService {
     // SendKeepAlives allows node to send a stream of keep alive requests
@@ -49,6 +58,16 @@ service AuthService {
     // UpsertNode upserts node
     rpc UpsertNode(services.ServerV2) returns (services.KeepAlive);
 
-    // GetSignupTokens returns all the user signup tokens in the cluster.
-    rpc GetSignupTokens(google.protobuf.Empty) returns (stream services.SignupToken);
+    rpc UpsertSignupToken(services.TokenV2) returns (google.protobuf.Empty);
+
+    rpc GetSignupToken(GetSignupTokenRequest) returns (services.TokenV2);
+
+    rpc GetSignupTokens(google.protobuf.Empty) returns (stream services.TokenV2);
+
+	rpc DeleteSignupToken(DeleteSignupTokenRequest) returns (google.protobuf.Empty);
 }
+
+//UpsertSignupToken(token string, tokenData SignupToken, ttl time.Duration) error
+//GetSignupToken(token string) (*SignupToken, error)
+//GetSignupTokens() ([]SignupToken, error)
+//DeleteSignupToken(token string) error
