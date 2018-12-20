@@ -404,6 +404,9 @@ func (s *ServicesTestSuite) WebSessionCRUD(c *check.C) {
 }
 
 func (s *ServicesTestSuite) TokenCRUD(c *check.C) {
+}
+
+func (s *ServicesTestSuite) ProvisionTokenCRUD(c *check.C) {
 	_, err := s.ProvisioningS.GetToken("token")
 	c.Assert(trace.IsNotFound(err), check.Equals, true, check.Commentf("%#v", err))
 
@@ -560,8 +563,8 @@ func (s *ServicesTestSuite) SAMLCRUD(c *check.C) {
 			Namespace: defaults.Namespace,
 		},
 		Spec: services.SAMLConnectorSpecV2{
-			Issuer: "http://example.com",
-			SSO:    "https://example.com/saml/sso",
+			Issuer:                   "http://example.com",
+			SSO:                      "https://example.com/saml/sso",
 			AssertionConsumerService: "https://localhost/acs",
 			Audience:                 "https://localhost/aud",
 			ServiceProviderIssuer:    "https://localhost/iss",

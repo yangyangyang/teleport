@@ -183,7 +183,7 @@ message RoleMapping {
 	repeated string Local = 2 [(gogoproto.jsontag) = "local"];
 }
 
-message TokenV2 {
+message UserTokenV2 {
 	// Kind is a resource kind
 	string Kind = 1 [(gogoproto.jsontag) = "kind"];
 	// Version is version
@@ -191,14 +191,13 @@ message TokenV2 {
 	// Metadata is connector metadata
 	Metadata Metadata = 3 [(gogoproto.nullable) = false, (gogoproto.jsontag) = "metadata"];
 	// Spec contains cert authority specification
-	TokenSpecV2 Spec = 4 [(gogoproto.nullable) = false, (gogoproto.jsontag) = "spec"];
+	UserTokenSpecV2 Spec = 4 [(gogoproto.nullable) = false, (gogoproto.jsontag) = "spec"];
 }
 
-message TokenSpecV2  {
+message UserTokenSpecV2  {
     string Token = 1 [(gogoproto.jsontag) = "token"];
-    string Type = 2 [(gogoproto.jsontag) = "type"];
-    string User = 3 [(gogoproto.jsontag) = "user"];
-    string OTPKey = 4 [(gogoproto.jsontag) = "otp_key"];
-    bytes OTPQRCode = 5 [(gogoproto.jsontag) = "otp_qr_code"];
-    google.protobuf.Timestamp Expires = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "expires"];
+	repeated string Roles = 3 [(gogoproto.jsontag) = "roles,omitempty"];
+    string User = 4 [(gogoproto.jsontag) = "user,omitempty"];
+    string Key = 5 [(gogoproto.jsontag) = "key,omitempty"];
+    bytes QRCode = 6 [(gogoproto.jsontag) = "qr_code,omitempty"];
 }

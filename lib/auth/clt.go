@@ -23,6 +23,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -2367,6 +2368,83 @@ func (c *Client) DeleteTrustedCluster(name string) error {
 	return trace.Wrap(err)
 }
 
+func (c *Client) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {
+	userTokenV2, ok := userToken.(*services.UserTokenV2)
+	if !ok {
+		return trace.BadParameter("UserTokenV2 required")
+	}
+
+	clt, err := c.grpc()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	_, err = clt.UpsertUserToken(ctx, userTokenV2)
+	if err != nil {
+		return trail.FromGRPC(err)
+	}
+
+	return nil
+}
+
+func (c *Client) GetUserToken(ctx context.Context, token string) (services.UserToken, error) {
+	clt, err := c.grpc()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	userToken, err := clt.GetUserToken(ctx, &proto.GetUserTokenRequest{
+		Token: token,
+	})
+	if err != nil {
+		return nil, trail.FromGRPC(err)
+	}
+
+	return userToken, nil
+}
+
+func (c *Client) GetUserTokens(ctx context.Context) ([]services.UserToken, error) {
+	clt, err := c.grpc()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	stream, err := clt.GetUserTokens(ctx, &empty.Empty{})
+	if err != nil {
+		return nil, trail.FromGRPC(err)
+	}
+
+	var tokens []services.UserToken
+	for {
+		userToken, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, trail.FromGRPC(err)
+		}
+		tokens = append(tokens, userToken)
+	}
+
+	return tokens, nil
+}
+
+func (c *Client) DeleteUserToken(ctx context.Context, token string) error {
+	clt, err := c.grpc()
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	_, err = clt.DeleteUserToken(ctx, &proto.DeleteUserTokenRequest{
+		Token: token,
+	})
+	if err != nil {
+		return trail.FromGRPC(err)
+	}
+
+	return nil
+}
+
 // WebService implements features used by Web UI clients
 type WebService interface {
 	// GetWebSessionInfo checks if a web sesion is valid, returns session id in case if
@@ -2510,6 +2588,11 @@ type IdentityService interface {
 	// CreateSignupToken creates one time token for creating account for the user
 	// For each token it creates username and OTP key
 	CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error)
+
+	UpsertUserToken(context.Context, services.UserToken) error
+	GetUserToken(context.Context, string) (services.UserToken, error)
+	GetUserTokens(context.Context) ([]services.UserToken, error)
+	DeleteUserToken(context.Context, string) error
 }
 
 // ProvisioningService is a service in control

@@ -1359,6 +1359,41 @@ func (a *AuthWithRoles) DeleteAllRemoteClusters() error {
 	return a.authServer.DeleteAllRemoteClusters()
 }
 
+func (a *AuthWithRoles) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {
+	if err := a.action(defaults.Namespace, services.KindToken, services.VerbCreate); err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.UpsertUserToken(ctx, userToken)
+}
+
+func (a *AuthWithRoles) GetUserToken(ctx context.Context, token string) (services.UserToken, error) {
+	if err := a.action(defaults.Namespace, services.KindToken, services.VerbRead); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return a.authServer.GetUserToken(ctx, token)
+}
+
+func (a *AuthWithRoles) GetUserTokens(ctx context.Context) ([]services.UserToken, error) {
+	if err := a.action(defaults.Namespace, services.KindToken, services.VerbRead); err != nil {
+		return nil, trace.Wrap(err)
+	}
+	if err := a.action(defaults.Namespace, services.KindToken, services.VerbList); err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return a.authServer.GetUserTokens(ctx)
+}
+
+func (a *AuthWithRoles) DeleteUserToken(ctx context.Context, token string) error {
+	if err := a.action(defaults.Namespace, services.KindToken, services.VerbDelete); err != nil {
+		return trace.Wrap(err)
+	}
+
+	return a.authServer.DeleteUserToken(ctx, token)
+}
+
 // ProcessKubeCSR processes CSR request against Kubernetes CA, returns
 // signed certificate if sucessful.
 func (a *AuthWithRoles) ProcessKubeCSR(req KubeCSR) (*KubeCSRResponse, error) {

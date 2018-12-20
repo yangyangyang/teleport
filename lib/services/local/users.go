@@ -492,149 +492,73 @@ func (s *IdentityService) UpsertPassword(user string, password []byte) error {
 	return nil
 }
 
-func (s *IdentityService) UpsertSignupToken(token services.Token) error {
+// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
+func (s *IdentityService) UpsertSignupToken(token string, tokenData services.SignupToken, ttl time.Duration) error {
 	if ttl < time.Second || ttl > defaults.MaxSignupTokenTTL {
 		ttl = defaults.MaxSignupTokenTTL
 	}
 	tokenData.Expires = time.Now().UTC().Add(ttl)
-
-	bytes, err := services.GetTokenMarshaler().MarshalToken(token)
+	value, err := json.Marshal(tokenData)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
 	item := backend.Item{
-		Key:     backend.Key(userTokensPrefix, token.Spec.Token),
-		Value:   bytes,
-		Expires: token.Spec.Expires,
+		Key:     backend.Key(signupTokenPrefix, token),
+		Value:   value,
+		Expires: tokenData.Expires,
 	}
 	_, err = s.Put(context.TODO(), item)
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
 	return nil
+
 }
 
-func (s *IdentityService) GetSignupToken(token string) (*services.Token, error) {
+// GetSignupToken returns signup token data
+func (s *IdentityService) GetSignupToken(token string) (*services.SignupToken, error) {
 	if token == "" {
 		return nil, trace.BadParameter("missing token")
 	}
-
-	item, err := s.Get(context.TODO(), backend.Key(userTokensPrefix, token))
+	item, err := s.Get(context.TODO(), backend.Key(signupTokenPrefix, token))
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	var token services.TokenV2
-	err := services.GetTokenUnmarshaler().UnmarshalToken(&token)
+	var signupToken services.SignupToken
+	err = json.Unmarshal(item.Value, &signupToken)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	return &token, nil
+	return &signupToken, nil
 }
 
-func (s *IdentityService) GetSignupTokens() ([]services.Token, error) {
-	startKey := backend.Key(userTokensPrefix)
+// GetSignupTokens returns all non-expired user tokens
+func (s *IdentityService) GetSignupTokens() ([]services.SignupToken, error) {
+	startKey := backend.Key(signupTokenPrefix)
 	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-
-	tokens := make([]services.Token, len(result.Items))
+	tokens := make([]services.SignupToken, len(result.Items))
 	for i, item := range result.Items {
-		var token services.TokenV2
-		err := services.GetTokenUnmarshaler().UnmarshalToken(&token)
+		var signupToken services.SignupToken
+		err = json.Unmarshal(item.Value, &signupToken)
 		if err != nil {
 			return nil, trace.Wrap(err)
 		}
-		tokens[i] = token
+		tokens[i] = signupToken
 	}
-
 	return tokens, nil
 }
 
+// DeleteSignupToken deletes signup token from the storage
 func (s *IdentityService) DeleteSignupToken(token string) error {
 	if token == "" {
 		return trace.BadParameter("missing parameter token")
 	}
-
-	err := s.Delete(context.TODO(), backend.Key(userTokensPrefix, token))
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	return nil
+	err := s.Delete(context.TODO(), backend.Key(signupTokenPrefix, token))
+	return trace.Wrap(err)
 }
-
-//// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
-//func (s *IdentityService) UpsertSignupToken(token string, tokenData services.SignupToken, ttl time.Duration) error {
-//	if ttl < time.Second || ttl > defaults.MaxSignupTokenTTL {
-//		ttl = defaults.MaxSignupTokenTTL
-//	}
-//	tokenData.Expires = time.Now().UTC().Add(ttl)
-//	value, err := json.Marshal(tokenData)
-//	if err != nil {
-//		return trace.Wrap(err)
-//	}
-//	item := backend.Item{
-//		Key:     backend.Key(userTokensPrefix, token),
-//		Value:   value,
-//		Expires: tokenData.Expires,
-//	}
-//	_, err = s.Put(context.TODO(), item)
-//	if err != nil {
-//		return trace.Wrap(err)
-//	}
-//	return nil
-//
-//}
-//
-//// GetSignupToken returns signup token data
-//func (s *IdentityService) GetSignupToken(token string) (*services.SignupToken, error) {
-//	if token == "" {
-//		return nil, trace.BadParameter("missing token")
-//	}
-//	item, err := s.Get(context.TODO(), backend.Key(userTokensPrefix, token))
-//	if err != nil {
-//		return nil, trace.Wrap(err)
-//	}
-//	var signupToken services.SignupToken
-//	err = json.Unmarshal(item.Value, &signupToken)
-//	if err != nil {
-//		return nil, trace.Wrap(err)
-//	}
-//	return &signupToken, nil
-//}
-//
-//// GetSignupTokens returns all non-expired user tokens
-//func (s *IdentityService) GetSignupTokens() ([]services.SignupToken, error) {
-//	startKey := backend.Key(userTokensPrefix)
-//	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
-//	if err != nil {
-//		return nil, trace.Wrap(err)
-//	}
-//	tokens := make([]services.SignupToken, len(result.Items))
-//	for i, item := range result.Items {
-//		var signupToken services.SignupToken
-//		err = json.Unmarshal(item.Value, &signupToken)
-//		if err != nil {
-//			return nil, trace.Wrap(err)
-//		}
-//		tokens[i] = signupToken
-//	}
-//	return tokens, nil
-//}
-//
-//// DeleteSignupToken deletes signup token from the storage
-//func (s *IdentityService) DeleteSignupToken(token string) error {
-//	if token == "" {
-//		return trace.BadParameter("missing parameter token")
-//	}
-//	err := s.Delete(context.TODO(), backend.Key(userTokensPrefix, token))
-//	return trace.Wrap(err)
-//}
 
 func (s *IdentityService) UpsertU2FRegisterChallenge(token string, u2fChallenge *u2f.Challenge) error {
 	if token == "" {
@@ -1199,6 +1123,75 @@ func (s *IdentityService) GetGithubAuthRequest(stateToken string) (*services.Git
 	return &req, nil
 }
 
+func (s *IdentityService) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {
+	// TODO: TTL
+	value, err := services.GetUserTokenMarshaler().Marshal(userToken)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	item := backend.Item{
+		Key:   backend.Key(userTokenPrefix, userToken.GetToken()),
+		Value: value,
+		//Expires: tokenData.Expires,
+	}
+	_, err = s.Put(ctx, item)
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
+func (s *IdentityService) GetUserToken(ctx context.Context, token string) (services.UserToken, error) {
+	if token == "" {
+		return nil, trace.BadParameter("missing token")
+	}
+
+	item, err := s.Get(ctx, backend.Key(userTokenPrefix, token))
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	userToken, err := services.GetUserTokenMarshaler().Unmarshal(item.Value)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return userToken, nil
+}
+
+func (s *IdentityService) GetUserTokens(ctx context.Context) ([]services.UserToken, error) {
+	startKey := backend.Key(userTokenPrefix)
+	result, err := s.GetRange(ctx, startKey, backend.RangeEnd(startKey), backend.NoLimit)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	tokens := make([]services.UserToken, len(result.Items))
+	for i, item := range result.Items {
+		userToken, err := services.GetUserTokenMarshaler().Unmarshal(item.Value)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		tokens[i] = userToken
+	}
+	return tokens, nil
+}
+
+func (s *IdentityService) DeleteUserToken(ctx context.Context, token string) error {
+	if token == "" {
+		return trace.BadParameter("missing parameter token")
+	}
+
+	err := s.Delete(ctx, backend.Key(userTokenPrefix, token))
+	if err != nil {
+		return trace.Wrap(err)
+	}
+
+	return nil
+}
+
 const (
 	webPrefix                    = "web"
 	usersPrefix                  = "users"
@@ -1212,7 +1205,8 @@ const (
 	samlPrefix                   = "saml"
 	githubPrefix                 = "github"
 	requestsPrefix               = "requests"
-	userTokensPrefix             = "addusertokens"
+	signupTokenPrefix            = "addusertokens"
+	userTokenPrefix              = "usertokens"
 	u2fRegChalPrefix             = "adduseru2fchallenges"
 	usedTOTPPrefix               = "used_totp"
 	usedTOTPTTL                  = 30 * time.Second

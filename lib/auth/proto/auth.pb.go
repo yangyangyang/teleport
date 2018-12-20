@@ -49,7 +49,7 @@ func (x Operation) String() string {
 	return proto.EnumName(Operation_name, int32(x))
 }
 func (Operation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a91a9c410f46936c, []int{0}
+	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{0}
 }
 
 // Event returns cluster event
@@ -71,7 +71,7 @@ func (m *Event) Reset()         { *m = Event{} }
 func (m *Event) String() string { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()    {}
 func (*Event) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a91a9c410f46936c, []int{0}
+	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{0}
 }
 func (m *Event) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -224,7 +224,7 @@ func (m *Watch) Reset()         { *m = Watch{} }
 func (m *Watch) String() string { return proto.CompactTextString(m) }
 func (*Watch) ProtoMessage()    {}
 func (*Watch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a91a9c410f46936c, []int{1}
+	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{1}
 }
 func (m *Watch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -253,25 +253,25 @@ func (m *Watch) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Watch proto.InternalMessageInfo
 
-type GetSignupTokenRequest struct {
+type GetUserTokenRequest struct {
 	Token                string   `protobuf:"bytes,1,opt,name=Token,proto3" json:"token"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *GetSignupTokenRequest) Reset()         { *m = GetSignupTokenRequest{} }
-func (m *GetSignupTokenRequest) String() string { return proto.CompactTextString(m) }
-func (*GetSignupTokenRequest) ProtoMessage()    {}
-func (*GetSignupTokenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a91a9c410f46936c, []int{2}
+func (m *GetUserTokenRequest) Reset()         { *m = GetUserTokenRequest{} }
+func (m *GetUserTokenRequest) String() string { return proto.CompactTextString(m) }
+func (*GetUserTokenRequest) ProtoMessage()    {}
+func (*GetUserTokenRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{2}
 }
-func (m *GetSignupTokenRequest) XXX_Unmarshal(b []byte) error {
+func (m *GetUserTokenRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *GetSignupTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *GetUserTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_GetSignupTokenRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_GetUserTokenRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -281,37 +281,37 @@ func (m *GetSignupTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byt
 		return b[:n], nil
 	}
 }
-func (dst *GetSignupTokenRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GetSignupTokenRequest.Merge(dst, src)
+func (dst *GetUserTokenRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetUserTokenRequest.Merge(dst, src)
 }
-func (m *GetSignupTokenRequest) XXX_Size() int {
+func (m *GetUserTokenRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *GetSignupTokenRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_GetSignupTokenRequest.DiscardUnknown(m)
+func (m *GetUserTokenRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetUserTokenRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GetSignupTokenRequest proto.InternalMessageInfo
+var xxx_messageInfo_GetUserTokenRequest proto.InternalMessageInfo
 
-type DeleteSignupTokenRequest struct {
+type DeleteUserTokenRequest struct {
 	Token                string   `protobuf:"bytes,1,opt,name=Token,proto3" json:"token"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *DeleteSignupTokenRequest) Reset()         { *m = DeleteSignupTokenRequest{} }
-func (m *DeleteSignupTokenRequest) String() string { return proto.CompactTextString(m) }
-func (*DeleteSignupTokenRequest) ProtoMessage()    {}
-func (*DeleteSignupTokenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a91a9c410f46936c, []int{3}
+func (m *DeleteUserTokenRequest) Reset()         { *m = DeleteUserTokenRequest{} }
+func (m *DeleteUserTokenRequest) String() string { return proto.CompactTextString(m) }
+func (*DeleteUserTokenRequest) ProtoMessage()    {}
+func (*DeleteUserTokenRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{3}
 }
-func (m *DeleteSignupTokenRequest) XXX_Unmarshal(b []byte) error {
+func (m *DeleteUserTokenRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *DeleteSignupTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *DeleteUserTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_DeleteSignupTokenRequest.Marshal(b, m, deterministic)
+		return xxx_messageInfo_DeleteUserTokenRequest.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalTo(b)
@@ -321,23 +321,23 @@ func (m *DeleteSignupTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]
 		return b[:n], nil
 	}
 }
-func (dst *DeleteSignupTokenRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteSignupTokenRequest.Merge(dst, src)
+func (dst *DeleteUserTokenRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteUserTokenRequest.Merge(dst, src)
 }
-func (m *DeleteSignupTokenRequest) XXX_Size() int {
+func (m *DeleteUserTokenRequest) XXX_Size() int {
 	return m.Size()
 }
-func (m *DeleteSignupTokenRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_DeleteSignupTokenRequest.DiscardUnknown(m)
+func (m *DeleteUserTokenRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DeleteUserTokenRequest.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_DeleteSignupTokenRequest proto.InternalMessageInfo
+var xxx_messageInfo_DeleteUserTokenRequest proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*Event)(nil), "proto.Event")
 	proto.RegisterType((*Watch)(nil), "proto.Watch")
-	proto.RegisterType((*GetSignupTokenRequest)(nil), "proto.GetSignupTokenRequest")
-	proto.RegisterType((*DeleteSignupTokenRequest)(nil), "proto.DeleteSignupTokenRequest")
+	proto.RegisterType((*GetUserTokenRequest)(nil), "proto.GetUserTokenRequest")
+	proto.RegisterType((*DeleteUserTokenRequest)(nil), "proto.DeleteUserTokenRequest")
 	proto.RegisterEnum("proto.Operation", Operation_name, Operation_value)
 }
 
@@ -358,10 +358,10 @@ type AuthServiceClient interface {
 	WatchEvents(ctx context.Context, in *Watch, opts ...grpc.CallOption) (AuthService_WatchEventsClient, error)
 	// UpsertNode upserts node
 	UpsertNode(ctx context.Context, in *services.ServerV2, opts ...grpc.CallOption) (*services.KeepAlive, error)
-	UpsertSignupToken(ctx context.Context, in *services.TokenV2, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetSignupToken(ctx context.Context, in *GetSignupTokenRequest, opts ...grpc.CallOption) (*services.TokenV2, error)
-	GetSignupTokens(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AuthService_GetSignupTokensClient, error)
-	DeleteSignupToken(ctx context.Context, in *DeleteSignupTokenRequest, opts ...grpc.CallOption) (*empty.Empty, error)
+	UpsertUserToken(ctx context.Context, in *services.UserTokenV2, opts ...grpc.CallOption) (*empty.Empty, error)
+	GetUserToken(ctx context.Context, in *GetUserTokenRequest, opts ...grpc.CallOption) (*services.UserTokenV2, error)
+	GetUserTokens(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AuthService_GetUserTokensClient, error)
+	DeleteUserToken(ctx context.Context, in *DeleteUserTokenRequest, opts ...grpc.CallOption) (*empty.Empty, error)
 }
 
 type authServiceClient struct {
@@ -447,30 +447,30 @@ func (c *authServiceClient) UpsertNode(ctx context.Context, in *services.ServerV
 	return out, nil
 }
 
-func (c *authServiceClient) UpsertSignupToken(ctx context.Context, in *services.TokenV2, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *authServiceClient) UpsertUserToken(ctx context.Context, in *services.UserTokenV2, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/proto.AuthService/UpsertSignupToken", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/UpsertUserToken", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authServiceClient) GetSignupToken(ctx context.Context, in *GetSignupTokenRequest, opts ...grpc.CallOption) (*services.TokenV2, error) {
-	out := new(services.TokenV2)
-	err := c.cc.Invoke(ctx, "/proto.AuthService/GetSignupToken", in, out, opts...)
+func (c *authServiceClient) GetUserToken(ctx context.Context, in *GetUserTokenRequest, opts ...grpc.CallOption) (*services.UserTokenV2, error) {
+	out := new(services.UserTokenV2)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/GetUserToken", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *authServiceClient) GetSignupTokens(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AuthService_GetSignupTokensClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_AuthService_serviceDesc.Streams[2], "/proto.AuthService/GetSignupTokens", opts...)
+func (c *authServiceClient) GetUserTokens(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AuthService_GetUserTokensClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_AuthService_serviceDesc.Streams[2], "/proto.AuthService/GetUserTokens", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &authServiceGetSignupTokensClient{stream}
+	x := &authServiceGetUserTokensClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -480,26 +480,26 @@ func (c *authServiceClient) GetSignupTokens(ctx context.Context, in *empty.Empty
 	return x, nil
 }
 
-type AuthService_GetSignupTokensClient interface {
-	Recv() (*services.TokenV2, error)
+type AuthService_GetUserTokensClient interface {
+	Recv() (*services.UserTokenV2, error)
 	grpc.ClientStream
 }
 
-type authServiceGetSignupTokensClient struct {
+type authServiceGetUserTokensClient struct {
 	grpc.ClientStream
 }
 
-func (x *authServiceGetSignupTokensClient) Recv() (*services.TokenV2, error) {
-	m := new(services.TokenV2)
+func (x *authServiceGetUserTokensClient) Recv() (*services.UserTokenV2, error) {
+	m := new(services.UserTokenV2)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func (c *authServiceClient) DeleteSignupToken(ctx context.Context, in *DeleteSignupTokenRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
+func (c *authServiceClient) DeleteUserToken(ctx context.Context, in *DeleteUserTokenRequest, opts ...grpc.CallOption) (*empty.Empty, error) {
 	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/proto.AuthService/DeleteSignupToken", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/DeleteUserToken", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -515,10 +515,10 @@ type AuthServiceServer interface {
 	WatchEvents(*Watch, AuthService_WatchEventsServer) error
 	// UpsertNode upserts node
 	UpsertNode(context.Context, *services.ServerV2) (*services.KeepAlive, error)
-	UpsertSignupToken(context.Context, *services.TokenV2) (*empty.Empty, error)
-	GetSignupToken(context.Context, *GetSignupTokenRequest) (*services.TokenV2, error)
-	GetSignupTokens(*empty.Empty, AuthService_GetSignupTokensServer) error
-	DeleteSignupToken(context.Context, *DeleteSignupTokenRequest) (*empty.Empty, error)
+	UpsertUserToken(context.Context, *services.UserTokenV2) (*empty.Empty, error)
+	GetUserToken(context.Context, *GetUserTokenRequest) (*services.UserTokenV2, error)
+	GetUserTokens(*empty.Empty, AuthService_GetUserTokensServer) error
+	DeleteUserToken(context.Context, *DeleteUserTokenRequest) (*empty.Empty, error)
 }
 
 func RegisterAuthServiceServer(s *grpc.Server, srv AuthServiceServer) {
@@ -590,77 +590,77 @@ func _AuthService_UpsertNode_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_UpsertSignupToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(services.TokenV2)
+func _AuthService_UpsertUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(services.UserTokenV2)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).UpsertSignupToken(ctx, in)
+		return srv.(AuthServiceServer).UpsertUserToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.AuthService/UpsertSignupToken",
+		FullMethod: "/proto.AuthService/UpsertUserToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).UpsertSignupToken(ctx, req.(*services.TokenV2))
+		return srv.(AuthServiceServer).UpsertUserToken(ctx, req.(*services.UserTokenV2))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_GetSignupToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetSignupTokenRequest)
+func _AuthService_GetUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).GetSignupToken(ctx, in)
+		return srv.(AuthServiceServer).GetUserToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.AuthService/GetSignupToken",
+		FullMethod: "/proto.AuthService/GetUserToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).GetSignupToken(ctx, req.(*GetSignupTokenRequest))
+		return srv.(AuthServiceServer).GetUserToken(ctx, req.(*GetUserTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_GetSignupTokens_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _AuthService_GetUserTokens_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(empty.Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(AuthServiceServer).GetSignupTokens(m, &authServiceGetSignupTokensServer{stream})
+	return srv.(AuthServiceServer).GetUserTokens(m, &authServiceGetUserTokensServer{stream})
 }
 
-type AuthService_GetSignupTokensServer interface {
-	Send(*services.TokenV2) error
+type AuthService_GetUserTokensServer interface {
+	Send(*services.UserTokenV2) error
 	grpc.ServerStream
 }
 
-type authServiceGetSignupTokensServer struct {
+type authServiceGetUserTokensServer struct {
 	grpc.ServerStream
 }
 
-func (x *authServiceGetSignupTokensServer) Send(m *services.TokenV2) error {
+func (x *authServiceGetUserTokensServer) Send(m *services.UserTokenV2) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func _AuthService_DeleteSignupToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteSignupTokenRequest)
+func _AuthService_DeleteUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).DeleteSignupToken(ctx, in)
+		return srv.(AuthServiceServer).DeleteUserToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.AuthService/DeleteSignupToken",
+		FullMethod: "/proto.AuthService/DeleteUserToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).DeleteSignupToken(ctx, req.(*DeleteSignupTokenRequest))
+		return srv.(AuthServiceServer).DeleteUserToken(ctx, req.(*DeleteUserTokenRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -674,16 +674,16 @@ var _AuthService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_UpsertNode_Handler,
 		},
 		{
-			MethodName: "UpsertSignupToken",
-			Handler:    _AuthService_UpsertSignupToken_Handler,
+			MethodName: "UpsertUserToken",
+			Handler:    _AuthService_UpsertUserToken_Handler,
 		},
 		{
-			MethodName: "GetSignupToken",
-			Handler:    _AuthService_GetSignupToken_Handler,
+			MethodName: "GetUserToken",
+			Handler:    _AuthService_GetUserToken_Handler,
 		},
 		{
-			MethodName: "DeleteSignupToken",
-			Handler:    _AuthService_DeleteSignupToken_Handler,
+			MethodName: "DeleteUserToken",
+			Handler:    _AuthService_DeleteUserToken_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
@@ -698,8 +698,8 @@ var _AuthService_serviceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
-			StreamName:    "GetSignupTokens",
-			Handler:       _AuthService_GetSignupTokens_Handler,
+			StreamName:    "GetUserTokens",
+			Handler:       _AuthService_GetUserTokens_Handler,
 			ServerStreams: true,
 		},
 	},
@@ -803,7 +803,7 @@ func (m *Watch) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *GetSignupTokenRequest) Marshal() (dAtA []byte, err error) {
+func (m *GetUserTokenRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -813,7 +813,7 @@ func (m *GetSignupTokenRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GetSignupTokenRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *GetUserTokenRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -830,7 +830,7 @@ func (m *GetSignupTokenRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
-func (m *DeleteSignupTokenRequest) Marshal() (dAtA []byte, err error) {
+func (m *DeleteUserTokenRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalTo(dAtA)
@@ -840,7 +840,7 @@ func (m *DeleteSignupTokenRequest) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *DeleteSignupTokenRequest) MarshalTo(dAtA []byte) (int, error) {
+func (m *DeleteUserTokenRequest) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
@@ -914,7 +914,7 @@ func (m *Watch) Size() (n int) {
 	return n
 }
 
-func (m *GetSignupTokenRequest) Size() (n int) {
+func (m *GetUserTokenRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Token)
@@ -927,7 +927,7 @@ func (m *GetSignupTokenRequest) Size() (n int) {
 	return n
 }
 
-func (m *DeleteSignupTokenRequest) Size() (n int) {
+func (m *DeleteUserTokenRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Token)
@@ -1167,7 +1167,7 @@ func (m *Watch) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *GetSignupTokenRequest) Unmarshal(dAtA []byte) error {
+func (m *GetUserTokenRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1190,10 +1190,10 @@ func (m *GetSignupTokenRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: GetSignupTokenRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: GetUserTokenRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GetSignupTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: GetUserTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1247,7 +1247,7 @@ func (m *GetSignupTokenRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-func (m *DeleteSignupTokenRequest) Unmarshal(dAtA []byte) error {
+func (m *DeleteUserTokenRequest) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
@@ -1270,10 +1270,10 @@ func (m *DeleteSignupTokenRequest) Unmarshal(dAtA []byte) error {
 		fieldNum := int32(wire >> 3)
 		wireType := int(wire & 0x7)
 		if wireType == 4 {
-			return fmt.Errorf("proto: DeleteSignupTokenRequest: wiretype end group for non-group")
+			return fmt.Errorf("proto: DeleteUserTokenRequest: wiretype end group for non-group")
 		}
 		if fieldNum <= 0 {
-			return fmt.Errorf("proto: DeleteSignupTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+			return fmt.Errorf("proto: DeleteUserTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
 		case 1:
@@ -1432,44 +1432,44 @@ var (
 	ErrIntOverflowAuth   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_a91a9c410f46936c) }
+func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_a6886c9a58e7f3a7) }
 
-var fileDescriptor_auth_a91a9c410f46936c = []byte{
-	// 563 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x52, 0xcb, 0x6e, 0xd3, 0x50,
-	0x10, 0x8d, 0x1b, 0x5c, 0xc8, 0x14, 0xd2, 0x76, 0x5a, 0x2a, 0x63, 0xaa, 0x38, 0xca, 0x2a, 0x3c,
-	0x64, 0x57, 0x46, 0x48, 0x15, 0x48, 0x45, 0x35, 0x8d, 0xa8, 0xd4, 0x0a, 0x50, 0x9a, 0x16, 0x89,
-	0x4d, 0xe5, 0x24, 0x83, 0x63, 0xd5, 0xf5, 0x35, 0xd7, 0xd7, 0x91, 0xf2, 0x0b, 0x7c, 0x01, 0xff,
-	0xc3, 0xa6, 0x4b, 0xbe, 0x20, 0x82, 0xb0, 0xcb, 0x57, 0x20, 0x5f, 0x27, 0x4d, 0x4d, 0x93, 0x0d,
-	0x2b, 0xfb, 0x9e, 0x99, 0x73, 0xce, 0xbc, 0x00, 0xdc, 0x44, 0xf4, 0xcc, 0x88, 0x33, 0xc1, 0x50,
-	0x95, 0x1f, 0x7d, 0xd3, 0x63, 0x1e, 0x93, 0xbf, 0x56, 0xfa, 0x97, 0x05, 0xf5, 0xc7, 0x1e, 0x63,
-	0x5e, 0x40, 0x96, 0x7c, 0xb5, 0x93, 0x2f, 0x16, 0x5d, 0x46, 0x62, 0x30, 0x09, 0xbe, 0xf2, 0x7c,
-	0xd1, 0x4b, 0xda, 0x66, 0x87, 0x5d, 0x5a, 0x1e, 0x77, 0xfb, 0xbe, 0x70, 0x85, 0xcf, 0x42, 0x37,
-	0xb0, 0x04, 0x05, 0x14, 0x31, 0x2e, 0xac, 0xc0, 0x6f, 0x5b, 0x31, 0xf1, 0xbe, 0xdf, 0xa1, 0xd8,
-	0x12, 0x83, 0x88, 0xe2, 0x8c, 0x5b, 0xfb, 0xb6, 0x04, 0x6a, 0xa3, 0x4f, 0xa1, 0xc0, 0x5d, 0xb8,
-	0xd3, 0x1a, 0x44, 0xa4, 0x29, 0x55, 0xa5, 0x5e, 0xb6, 0xd7, 0xb2, 0xb8, 0xf9, 0x21, 0x22, 0x2e,
-	0xd5, 0x1c, 0x1c, 0x0f, 0x8d, 0x72, 0x4a, 0x7d, 0xce, 0x2e, 0x7d, 0x21, 0xfd, 0x9b, 0x92, 0x81,
-	0x9f, 0xa1, 0xdc, 0xa4, 0x98, 0x25, 0xbc, 0x43, 0x87, 0xe4, 0x76, 0x89, 0x6b, 0x4b, 0x55, 0xa5,
-	0xbe, 0x62, 0x6b, 0xe6, 0xd4, 0xd2, 0xcc, 0xc7, 0x9d, 0xad, 0xf1, 0xd0, 0x40, 0x3e, 0xc1, 0x66,
-	0x7a, 0x87, 0x85, 0xe6, 0x3f, 0x4a, 0x78, 0x0e, 0x0f, 0xde, 0x12, 0x17, 0xfb, 0x89, 0xe8, 0x31,
-	0xee, 0x8b, 0x81, 0x56, 0x94, 0xd2, 0x8f, 0x66, 0xd2, 0xb9, 0xf0, 0x99, 0xed, 0x6c, 0x8f, 0x87,
-	0x86, 0xd6, 0x21, 0x2e, 0xce, 0xdd, 0x29, 0x9a, 0x73, 0xc8, 0xeb, 0x39, 0x00, 0xf7, 0xa6, 0x96,
-	0x35, 0x1b, 0xd4, 0x4f, 0xae, 0xe8, 0xf4, 0xf0, 0x09, 0xa8, 0x47, 0x7e, 0xd8, 0x8d, 0x35, 0xa5,
-	0x5a, 0xac, 0x97, 0x9c, 0x8d, 0xf1, 0xd0, 0x58, 0xbd, 0x48, 0x81, 0x1b, 0xbd, 0x67, 0x19, 0xb5,
-	0x5d, 0x78, 0xf8, 0x8e, 0xc4, 0x89, 0xef, 0x85, 0x49, 0xd4, 0x62, 0x17, 0x14, 0x36, 0xe9, 0x6b,
-	0x42, 0xb1, 0x40, 0x03, 0x54, 0xf9, 0x96, 0x03, 0x2d, 0x39, 0xa5, 0xf1, 0xd0, 0x50, 0x85, 0x4c,
-	0xc8, 0xf0, 0xda, 0x6b, 0xd0, 0x0e, 0x28, 0x20, 0x41, 0xff, 0x41, 0x7e, 0x5a, 0x85, 0xd2, 0xf5,
-	0x6a, 0xf0, 0x2e, 0x14, 0x3f, 0x9e, 0xb6, 0xd6, 0x0a, 0x08, 0xb0, 0x7c, 0xd0, 0x38, 0x6e, 0xb4,
-	0x1a, 0x6b, 0x8a, 0xfd, 0xa3, 0x08, 0x2b, 0x69, 0x9b, 0x27, 0xd9, 0xa0, 0xf0, 0x0d, 0x94, 0x4f,
-	0x28, 0xec, 0x1e, 0x11, 0x45, 0xfb, 0x81, 0xdf, 0xa7, 0x18, 0x37, 0x66, 0x43, 0xbc, 0x46, 0xf5,
-	0x2d, 0x33, 0x3b, 0x35, 0x73, 0x7a, 0x6a, 0x66, 0x23, 0x6d, 0xb7, 0xae, 0xe0, 0x33, 0x58, 0x91,
-	0xd3, 0x91, 0xe7, 0x12, 0xe3, 0xfd, 0xc9, 0x85, 0x48, 0x4c, 0x9f, 0xbe, 0x64, 0x70, 0x47, 0xc1,
-	0x97, 0x00, 0xa7, 0x51, 0x4c, 0x5c, 0xbc, 0x67, 0x5d, 0x42, 0x9c, 0x39, 0xa5, 0xe5, 0x10, 0x3f,
-	0xb3, 0xf5, 0x79, 0xee, 0xb8, 0x07, 0xeb, 0x19, 0xed, 0xc6, 0x4c, 0x70, 0x7d, 0x96, 0x29, 0x81,
-	0x33, 0x7b, 0x51, 0x95, 0xb8, 0x0f, 0xe5, 0xfc, 0x36, 0x70, 0x7b, 0x52, 0xd8, 0xdc, 0x25, 0xe9,
-	0xb7, 0xa5, 0x71, 0x0f, 0x56, 0xf3, 0xb9, 0x31, 0x2e, 0x70, 0x9b, 0xc3, 0xde, 0x51, 0xf0, 0x18,
-	0xd6, 0x6f, 0xad, 0x15, 0x8d, 0x49, 0x15, 0x8b, 0x16, 0xbe, 0xa8, 0x21, 0x67, 0xf3, 0xea, 0x77,
-	0xa5, 0x70, 0x35, 0xaa, 0x28, 0x3f, 0x47, 0x15, 0xe5, 0xd7, 0xa8, 0xa2, 0x7c, 0xff, 0x53, 0x29,
-	0xb4, 0x97, 0x65, 0xd6, 0x8b, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x69, 0xb9, 0x0f, 0x99, 0x40,
-	0x04, 0x00, 0x00,
+var fileDescriptor_auth_a6886c9a58e7f3a7 = []byte{
+	// 562 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcd, 0x6e, 0xd3, 0x5c,
+	0x10, 0x8d, 0x9b, 0xcf, 0xfd, 0xc8, 0xb4, 0x4d, 0xab, 0x69, 0xa9, 0x8c, 0x81, 0x38, 0xca, 0x2a,
+	0xfc, 0xc8, 0xae, 0x8c, 0x40, 0xc0, 0x06, 0x6a, 0x1a, 0x11, 0xa9, 0x08, 0x50, 0x9a, 0x04, 0x89,
+	0x4d, 0xe5, 0x24, 0x83, 0x63, 0xd5, 0xc9, 0x35, 0xd7, 0xd7, 0x91, 0xf2, 0x0a, 0x3c, 0x01, 0x2f,
+	0x84, 0xd4, 0x25, 0x4f, 0x10, 0x41, 0xd8, 0xe5, 0x29, 0x90, 0xaf, 0xf3, 0x5b, 0x25, 0x0b, 0x56,
+	0xf6, 0x3d, 0x33, 0xe7, 0x9c, 0xf9, 0x03, 0x70, 0x63, 0xd1, 0x35, 0x43, 0xce, 0x04, 0x43, 0x55,
+	0x7e, 0xf4, 0x23, 0x8f, 0x79, 0x4c, 0xfe, 0x5a, 0xc9, 0x5f, 0x1a, 0xd4, 0xef, 0x7a, 0x8c, 0x79,
+	0x01, 0x59, 0xf2, 0xd5, 0x8a, 0xbf, 0x58, 0xd4, 0x0b, 0xc5, 0x70, 0x1a, 0x7c, 0xe9, 0xf9, 0xa2,
+	0x1b, 0xb7, 0xcc, 0x36, 0xeb, 0x59, 0x1e, 0x77, 0x07, 0xbe, 0x70, 0x85, 0xcf, 0xfa, 0x6e, 0x60,
+	0x09, 0x0a, 0x28, 0x64, 0x5c, 0x58, 0x81, 0xdf, 0xb2, 0x22, 0xe2, 0x03, 0xbf, 0x4d, 0x91, 0x25,
+	0x86, 0x21, 0x45, 0x29, 0xb7, 0xf4, 0x6d, 0x0b, 0xd4, 0xca, 0x80, 0xfa, 0x02, 0x9f, 0xc3, 0x7f,
+	0xf5, 0x61, 0x48, 0x9a, 0x52, 0x54, 0xca, 0x79, 0xfb, 0x20, 0x8d, 0x9b, 0x1f, 0x42, 0xe2, 0x52,
+	0xcd, 0xc1, 0xc9, 0xc8, 0xc8, 0x27, 0xd4, 0xc7, 0xac, 0xe7, 0x0b, 0xe9, 0x5f, 0x93, 0x0c, 0xfc,
+	0x0c, 0xf9, 0x1a, 0x45, 0x2c, 0xe6, 0x6d, 0xaa, 0x92, 0xdb, 0x21, 0xae, 0x6d, 0x15, 0x95, 0xf2,
+	0x8e, 0xad, 0x99, 0x33, 0x4b, 0x73, 0x35, 0xee, 0x1c, 0x4f, 0x46, 0x06, 0xf2, 0x29, 0xb6, 0xd0,
+	0xab, 0x66, 0x6a, 0x37, 0x94, 0xf0, 0x12, 0xf6, 0xde, 0x10, 0x17, 0xa7, 0xb1, 0xe8, 0x32, 0xee,
+	0x8b, 0xa1, 0x96, 0x95, 0xd2, 0x77, 0x16, 0xd2, 0x2b, 0xe1, 0xa6, 0xed, 0xdc, 0x9b, 0x8c, 0x0c,
+	0xad, 0x4d, 0x5c, 0x5c, 0xba, 0x33, 0x74, 0xc5, 0x61, 0x55, 0xcf, 0x01, 0xb8, 0x35, 0xb3, 0x2c,
+	0xd9, 0xa0, 0x7e, 0x72, 0x45, 0xbb, 0x8b, 0x0f, 0x40, 0x3d, 0xf7, 0xfb, 0x9d, 0x48, 0x53, 0x8a,
+	0xd9, 0x72, 0xce, 0x39, 0x9c, 0x8c, 0x8c, 0xfd, 0xab, 0x04, 0x58, 0xea, 0x3d, 0xcd, 0x28, 0x3d,
+	0x83, 0xc3, 0xb7, 0x24, 0x1a, 0x11, 0xf1, 0x3a, 0xbb, 0xa2, 0x7e, 0x8d, 0xbe, 0xc6, 0x14, 0x09,
+	0x34, 0x40, 0x95, 0x6f, 0x39, 0xce, 0x9c, 0x93, 0x9b, 0x8c, 0x0c, 0x55, 0xc8, 0x84, 0x14, 0x2f,
+	0xbd, 0x80, 0xe3, 0x33, 0x0a, 0x48, 0xd0, 0x3f, 0x53, 0x1f, 0x16, 0x21, 0x37, 0x5f, 0x0b, 0xfe,
+	0x0f, 0xd9, 0x8f, 0x8d, 0xfa, 0x41, 0x06, 0x01, 0xb6, 0xcf, 0x2a, 0xef, 0x2a, 0xf5, 0xca, 0x81,
+	0x62, 0xff, 0xc8, 0xc2, 0x4e, 0xd2, 0xe2, 0x45, 0x3a, 0x24, 0x7c, 0x05, 0xf9, 0x0b, 0xea, 0x77,
+	0xce, 0x89, 0xc2, 0xd3, 0xc0, 0x1f, 0x50, 0x84, 0x87, 0x8b, 0x01, 0xce, 0x51, 0xfd, 0xd8, 0x4c,
+	0xcf, 0xcc, 0x9c, 0x9d, 0x99, 0x59, 0x49, 0x5a, 0x2d, 0x2b, 0xf8, 0x08, 0x76, 0xe4, 0x64, 0xe4,
+	0xa9, 0x44, 0xb8, 0x3b, 0xbd, 0x0e, 0x89, 0xe9, 0xb3, 0x97, 0x0c, 0x9e, 0x28, 0xf8, 0x14, 0xa0,
+	0x11, 0x46, 0xc4, 0xc5, 0x7b, 0xd6, 0x21, 0xc4, 0x85, 0x53, 0x52, 0x0e, 0xf1, 0xa6, 0xad, 0xaf,
+	0x73, 0xc7, 0xd7, 0xb0, 0x9f, 0xd2, 0xe6, 0x13, 0xc1, 0xdb, 0x8b, 0xbc, 0x39, 0xd8, 0xb4, 0x37,
+	0xd5, 0x89, 0xa7, 0xb0, 0xbb, 0xbc, 0x0b, 0xd4, 0xa7, 0x85, 0xad, 0x59, 0x90, 0xbe, 0x5e, 0x1a,
+	0x1d, 0xd8, 0x5b, 0xce, 0x8e, 0x70, 0x83, 0xd7, 0x06, 0x7e, 0x29, 0x73, 0xa2, 0x60, 0x15, 0xf6,
+	0x6f, 0xac, 0x16, 0xef, 0x4f, 0x2b, 0x59, 0xbf, 0xf2, 0x4d, 0x0d, 0x39, 0x47, 0xd7, 0xbf, 0x0b,
+	0x99, 0xeb, 0x71, 0x41, 0xf9, 0x39, 0x2e, 0x28, 0xbf, 0xc6, 0x05, 0xe5, 0xfb, 0x9f, 0x42, 0xa6,
+	0xb5, 0x2d, 0xb3, 0x9e, 0xfc, 0x0d, 0x00, 0x00, 0xff, 0xff, 0x04, 0x88, 0x52, 0x62, 0x3e, 0x04,
+	0x00, 0x00,
 }

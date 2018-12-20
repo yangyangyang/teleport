@@ -26,7 +26,7 @@ import (
 	"gopkg.in/check.v1"
 )
 
-func TestLicense(t *testing.T) { check.TestingT(t) }
+func TestServices(t *testing.T) { check.TestingT(t) }
 
 type LicenseSuite struct {
 }

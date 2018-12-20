@@ -104,6 +104,9 @@ const (
 	// KindToken is a provisioning token resource
 	KindToken = "token"
 
+	// MetaNameToken
+	MetaNameToken = "meta-token"
+
 	// KindCertAuthority is a certificate authority resource
 	KindCertAuthority = "cert_authority"
 

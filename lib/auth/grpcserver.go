@@ -124,50 +124,58 @@ func (g *GRPCServer) UpsertNode(ctx context.Context, server *services.ServerV2) 
 	return keepAlive, nil
 }
 
-func (g *GRPCServer) UpsertSignupToken(ctx context.Context, token *services.TokenV2) (*empty.Empty, error) {
+func (g *GRPCServer) UpsertUserToken(ctx context.Context, userToken *services.UserTokenV2) (*empty.Empty, error) {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return &empty.Empty{}, trail.ToGRPC(err)
+	}
+
+	err = auth.UpsertUserToken(ctx, userToken)
+	if err != nil {
+		return &empty.Empty{}, trail.ToGRPC(err)
+	}
+
+	return &empty.Empty{}, nil
+}
+
+func (g *GRPCServer) GetUserToken(ctx context.Context, req *proto.GetUserTokenRequest) (*services.UserTokenV2, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
 		return nil, trail.ToGRPC(err)
 	}
 
-	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
-	err := auth.UpsertSignupToken(ctx, token, backend.Forever)
+	userToken, err := auth.GetUserToken(ctx, req.Token)
 	if err != nil {
 		return nil, trail.ToGRPC(err)
 	}
 
-	return nil, nil
+	userTokenV2, ok := userToken.(*services.UserTokenV2)
+	if !ok {
+		return nil, trail.ToGRPC(trace.BadParameter("UserTokenV2 required"))
+	}
+
+	return userTokenV2, nil
 }
 
-func (g *GRPCServer) GetSignupToken(ctx context.Context, req *proto.GetSignupTokenRequest) (*services.TokenV2, error) {
-	auth, err := g.authenticate(ctx)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
+func (g *GRPCServer) GetUserTokens(e *empty.Empty, stream proto.AuthService_GetUserTokensServer) error {
+	ctx := stream.Context()
 
-	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
-	token, err = auth.GetSignupToken(ctx, req.Token)
-	if err != nil {
-		return nil, trail.ToGRPC(err)
-	}
-
-	return token, nil
-}
-
-func (g *GRPCServer) GetSignupTokens(req *empty.Empty, stream proto.AuthService_GetSignupTokensServer) error {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
 		return trail.ToGRPC(err)
 	}
 
-	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
-	tokens, err := auth.GetSignupTokens(ctx)
+	userTokens, err := auth.GetUserTokens(ctx)
 	if err != nil {
 		return trail.ToGRPC(err)
 	}
 
-	for _, token := range tokens {
-		err = stream.Send(token)
+	for _, userToken := range userTokens {
+		userTokenV2, ok := userToken.(*services.UserTokenV2)
+		if !ok {
+			return trail.ToGRPC(trace.BadParameter("UserTokenV2 required"))
+		}
+		err = stream.Send(userTokenV2)
 		if err != nil {
 			return trail.ToGRPC(err)
 		}
@@ -176,36 +184,19 @@ func (g *GRPCServer) GetSignupTokens(req *empty.Empty, stream proto.AuthService_
 	return nil
 }
 
-func (g *GRPCServer) DeleteSignupToken(ctx context.Context, req *proto.DeleteSignupTokenRequest) (*empty.Empty, error) {
+func (g *GRPCServer) DeleteUserToken(ctx context.Context, req *proto.DeleteUserTokenRequest) (*empty.Empty, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
-		return nil, trail.ToGRPC(err)
+		return &empty.Empty{}, trail.ToGRPC(err)
 	}
 
-	// ?? From here it goes to AuthWithRoles -> Auth Server -> Backend.
-	err = auth.DeleteSignupToken(ctx, req.Token)
+	err = auth.DeleteUserToken(ctx, req.Token)
 	if err != nil {
-		return nil, trail.ToGRPC(err)
+		return &empty.Empty{}, trail.ToGRPC(err)
 	}
 
-	return nil, nil
+	return &empty.Empty{}, nil
 }
-
-//func (g *GRPCServer) GetSignupTokens(empty *empty.Empty, stream proto.AuthService_WatchEventsServer) error {
-//	return nil
-//	//fmt.Printf("--> GRPC: GetSignupTokens.")
-//	//auth, err := g.authenticate(ctx)
-//	//if err != nil {
-//	//	return nil, trail.ToGRPC(err)
-//	//}
-//
-//	//tokens, err := auth.GetSignupTokens()
-//	//if err != nil {
-//	//	return nil, trail.ToGRPC(err)
-//	//}
-//
-//	//return tokens, nil
-//}
 
 type grpcContext struct {
 	*AuthContext
