@@ -124,19 +124,57 @@ func (g *GRPCServer) UpsertNode(ctx context.Context, server *services.ServerV2) 
 	return keepAlive, nil
 }
 
-func (g *GRPCServer) UpsertUserToken(ctx context.Context, userToken *services.UserTokenV2) (*empty.Empty, error) {
+func (g *GRPCServer) CreateUserToken(ctx context.Context, req *proto.CreateUserTokenRequest) (*services.UserTokenV2, error) {
 	auth, err := g.authenticate(ctx)
 	if err != nil {
-		return &empty.Empty{}, trail.ToGRPC(err)
+		return nil, trail.ToGRPC(err)
 	}
 
-	err = auth.UpsertUserToken(ctx, userToken)
+	userToken, err := auth.CreateUserToken(ctx, req)
 	if err != nil {
-		return &empty.Empty{}, trail.ToGRPC(err)
+		return nil, trail.ToGRPC(err)
 	}
 
-	return &empty.Empty{}, nil
+	userTokenV2, ok := userToken.(*services.UserTokenV2)
+	if !ok {
+		return nil, trail.ToGRPC(trace.BadParameter("UserTokenV2 required"))
+	}
+
+	return userTokenV2, nil
 }
+
+func (g *GRPCServer) CreateOrResetUser(ctx context.Context, req *proto.CreateOrResetUserRequest) (*services.WebSessionV2, error) {
+	auth, err := g.authenticate(ctx)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	webSession, err := auth.CreateOrResetUser(ctx, req)
+	if err != nil {
+		return nil, trail.ToGRPC(err)
+	}
+
+	webSessionV2, ok := webSession.(*services.WebSessionV2)
+	if !ok {
+		return nil, trail.ToGRPC(trace.BadParameter("WebSessionV2 required"))
+	}
+
+	return webSessionV2, nil
+}
+
+//func (g *GRPCServer) UpsertUserToken(ctx context.Context, userToken *services.UserTokenV2) (*empty.Empty, error) {
+//	auth, err := g.authenticate(ctx)
+//	if err != nil {
+//		return &empty.Empty{}, trail.ToGRPC(err)
+//	}
+//
+//	err = auth.UpsertUserToken(ctx, userToken)
+//	if err != nil {
+//		return &empty.Empty{}, trail.ToGRPC(err)
+//	}
+//
+//	return &empty.Empty{}, nil
+//}
 
 func (g *GRPCServer) GetUserToken(ctx context.Context, req *proto.GetUserTokenRequest) (*services.UserTokenV2, error) {
 	auth, err := g.authenticate(ctx)

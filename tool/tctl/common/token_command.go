@@ -17,6 +17,7 @@ limitations under the License.
 package common
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	"github.com/gravitational/teleport/lib/auth"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/service"
+	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
 
@@ -167,6 +169,22 @@ func (c *TokenCommand) Del(client auth.ClientI) error {
 
 // List is called to execute "tokens ls" command.
 func (c *TokenCommand) List(client auth.ClientI) error {
+	userTokenIn, err := services.NewUserToken(services.UserTokenSpecV2{
+		Token: "fake-token-123",
+	})
+	err = client.UpsertUserToken(context.Background(), userTokenIn)
+	fmt.Printf("--> UpsertUserToken: err=%v.\n", err)
+	userToken, err := client.GetUserToken(context.Background(), "fake-token-123")
+	fmt.Printf("--> GetUserToken(fake-token-123): userToken: %v, err=%v.\n", userToken, err)
+	userToken, err = client.GetUserToken(context.Background(), "fake-token")
+	fmt.Printf("--> GetUserToken(fake-token): userToken: %v, err=%v.\n", userToken, err)
+	userTokens, err := client.GetUserTokens(context.Background())
+	fmt.Printf("--> GetUserTokens: userTokens: %v, err=%v.\n", userTokens, err)
+	err = client.DeleteUserToken(context.Background(), "fake-token-123")
+	fmt.Printf("--> DeleteUserToken: err=%v.\n", err)
+	userTokens, err = client.GetUserTokens(context.Background())
+	fmt.Printf("--> GetUserTokens: userTokens: %v, err=%v.\n", userTokens, err)
+
 	if c.tokenType == strings.ToLower(string(teleport.RoleSignup)) {
 		return listSignupTokens(client)
 	}

@@ -123,18 +123,6 @@ type Identity interface {
 	// UpsertPassword upserts new password and OTP token
 	UpsertPassword(user string, password []byte) error
 
-	// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
-	UpsertSignupToken(token string, tokenData SignupToken, ttl time.Duration) error
-
-	// GetSignupToken returns signup token data
-	GetSignupToken(token string) (*SignupToken, error)
-
-	// GetSignupTokens returns a list of signup tokens
-	GetSignupTokens() ([]SignupToken, error)
-
-	// DeleteSignupToken deletes signup token from the storage
-	DeleteSignupToken(token string) error
-
 	// UpsertU2FRegisterChallenge upserts a U2F challenge for a new user corresponding to the token
 	UpsertU2FRegisterChallenge(token string, u2fChallenge *u2f.Challenge) error
 
@@ -217,6 +205,20 @@ type Identity interface {
 	GetUserToken(context.Context, string) (UserToken, error)
 	GetUserTokens(context.Context) ([]UserToken, error)
 	DeleteUserToken(context.Context, string) error
+
+	//// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
+	//UpsertSignupToken(token string, tokenData SignupToken, ttl time.Duration) error
+
+	//// GetSignupToken returns signup token data
+	//GetSignupToken(token string) (*SignupToken, error)
+
+	// TODO: Legacy, delete. Only used during migration.
+
+	// GetSignupTokens returns a list of signup tokens
+	GetLegacySignupTokens() ([]SignupToken, error)
+
+	// DeleteSignupToken deletes signup token from the storage
+	DeleteLegacySignupToken(token string) error
 }
 
 // VerifyPassword makes sure password satisfies our requirements (relaxed),

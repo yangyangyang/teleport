@@ -1021,23 +1021,29 @@ func (s *AuthServer) RegisterNewAuthServer(token string) error {
 	return nil
 }
 
+// DeleteToken removes said token from the backend. Tries to remove static,
+// user, or provisioning token.
 func (s *AuthServer) DeleteToken(token string) (err error) {
+	// If the caller is trying to delete a static token, return an error. To
+	// remove a static token, it should be removed from teleport.yaml.
 	tkns, err := s.GetStaticTokens()
 	if err != nil {
 		return trace.Wrap(err)
 	}
-
-	// is this a static token?
 	for _, st := range tkns.GetStaticTokens() {
 		if st.Token == token {
 			return trace.BadParameter("token %s is statically configured and cannot be removed", token)
 		}
 	}
-	// delete user token:
-	if err = s.Identity.DeleteSignupToken(token); err == nil {
+
+	// Try and delete a user token. If no error is returned, that means an user
+	// token did exist and it was removed.
+	if err = s.Identity.DeleteUserToken(context.Background(), token); err == nil {
 		return nil
 	}
-	// delete node token:
+
+	// Try and delete a provisioning token. If no error is returned, that means
+	// a provisioning token did exist and it was removed.
 	if err = s.Provisioner.DeleteToken(token); err == nil {
 		return nil
 	}
@@ -1061,7 +1067,7 @@ func (s *AuthServer) GetTokens() (tokens []services.ProvisionToken, err error) {
 		tokens = append(tokens, tkns.GetStaticTokens()...)
 	}
 	// get user tokens:
-	userTokens, err := s.Identity.GetSignupTokens()
+	userTokens, err := s.Identity.GetUserTokens(context.Background())
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -1069,9 +1075,9 @@ func (s *AuthServer) GetTokens() (tokens []services.ProvisionToken, err error) {
 	for _, t := range userTokens {
 		roles := teleport.Roles{teleport.RoleSignup}
 		tokens = append(tokens, services.ProvisionToken{
-			Token:   t.Token,
-			Expires: t.Expires,
-			Roles:   roles,
+			Token:   t.GetToken(),
+			Expires: t.Expiry(),
+			Roles:   t.GetRoles(),
 		})
 	}
 	return tokens, nil

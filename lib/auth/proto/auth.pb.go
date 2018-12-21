@@ -7,11 +7,17 @@ import proto "github.com/golang/protobuf/proto"
 import fmt "fmt"
 import math "math"
 import _ "github.com/gogo/protobuf/gogoproto"
+import _ "github.com/golang/protobuf/ptypes/duration"
 import empty "github.com/golang/protobuf/ptypes/empty"
 import services "github.com/gravitational/teleport/lib/services"
 
+import time "time"
+import github_com_gravitational_teleport_lib_services "github.com/gravitational/teleport/lib/services"
+
 import context "golang.org/x/net/context"
 import grpc "google.golang.org/grpc"
+
+import github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
 
 import io "io"
 
@@ -19,6 +25,7 @@ import io "io"
 var _ = proto.Marshal
 var _ = fmt.Errorf
 var _ = math.Inf
+var _ = time.Kitchen
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
@@ -49,7 +56,7 @@ func (x Operation) String() string {
 	return proto.EnumName(Operation_name, int32(x))
 }
 func (Operation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{0}
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{0}
 }
 
 // Event returns cluster event
@@ -71,7 +78,7 @@ func (m *Event) Reset()         { *m = Event{} }
 func (m *Event) String() string { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()    {}
 func (*Event) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{0}
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{0}
 }
 func (m *Event) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -224,7 +231,7 @@ func (m *Watch) Reset()         { *m = Watch{} }
 func (m *Watch) String() string { return proto.CompactTextString(m) }
 func (*Watch) ProtoMessage()    {}
 func (*Watch) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{1}
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{1}
 }
 func (m *Watch) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -264,7 +271,7 @@ func (m *GetUserTokenRequest) Reset()         { *m = GetUserTokenRequest{} }
 func (m *GetUserTokenRequest) String() string { return proto.CompactTextString(m) }
 func (*GetUserTokenRequest) ProtoMessage()    {}
 func (*GetUserTokenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{2}
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{2}
 }
 func (m *GetUserTokenRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -304,7 +311,7 @@ func (m *DeleteUserTokenRequest) Reset()         { *m = DeleteUserTokenRequest{}
 func (m *DeleteUserTokenRequest) String() string { return proto.CompactTextString(m) }
 func (*DeleteUserTokenRequest) ProtoMessage()    {}
 func (*DeleteUserTokenRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_auth_a6886c9a58e7f3a7, []int{3}
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{3}
 }
 func (m *DeleteUserTokenRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -333,11 +340,144 @@ func (m *DeleteUserTokenRequest) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_DeleteUserTokenRequest proto.InternalMessageInfo
 
+type CreateUserTokenRequest struct {
+	User                 string                                                       `protobuf:"bytes,1,opt,name=User,proto3" json:"User,omitempty"`
+	TTL                  time.Duration                                                `protobuf:"bytes,2,opt,name=TTL,stdduration" json:"TTL"`
+	Type                 github_com_gravitational_teleport_lib_services.UserTokenType `protobuf:"bytes,3,opt,name=Type,proto3,casttype=github.com/gravitational/teleport/lib/services.UserTokenType" json:"Type,omitempty"`
+	Roles                []string                                                     `protobuf:"bytes,4,rep,name=Roles" json:"roles"`
+	AllowedLogins        []string                                                     `protobuf:"bytes,5,rep,name=AllowedLogins" json:"logins"`
+	KubeGroups           []string                                                     `protobuf:"bytes,6,rep,name=KubeGroups" json:"kube_groups"`
+	XXX_NoUnkeyedLiteral struct{}                                                     `json:"-"`
+	XXX_unrecognized     []byte                                                       `json:"-"`
+	XXX_sizecache        int32                                                        `json:"-"`
+}
+
+func (m *CreateUserTokenRequest) Reset()         { *m = CreateUserTokenRequest{} }
+func (m *CreateUserTokenRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateUserTokenRequest) ProtoMessage()    {}
+func (*CreateUserTokenRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{4}
+}
+func (m *CreateUserTokenRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *CreateUserTokenRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_CreateUserTokenRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *CreateUserTokenRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateUserTokenRequest.Merge(dst, src)
+}
+func (m *CreateUserTokenRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *CreateUserTokenRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateUserTokenRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateUserTokenRequest proto.InternalMessageInfo
+
+type U2FRegisterResponse struct {
+	RegistrationData     string   `protobuf:"bytes,1,opt,name=RegistrationData,proto3" json:"RegistrationData,omitempty"`
+	ClientData           string   `protobuf:"bytes,2,opt,name=ClientData,proto3" json:"ClientData,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *U2FRegisterResponse) Reset()         { *m = U2FRegisterResponse{} }
+func (m *U2FRegisterResponse) String() string { return proto.CompactTextString(m) }
+func (*U2FRegisterResponse) ProtoMessage()    {}
+func (*U2FRegisterResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{5}
+}
+func (m *U2FRegisterResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *U2FRegisterResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_U2FRegisterResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *U2FRegisterResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_U2FRegisterResponse.Merge(dst, src)
+}
+func (m *U2FRegisterResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *U2FRegisterResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_U2FRegisterResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_U2FRegisterResponse proto.InternalMessageInfo
+
+type CreateOrResetUserRequest struct {
+	Token                string                                                       `protobuf:"bytes,1,opt,name=Token,proto3" json:"Token,omitempty"`
+	Password             string                                                       `protobuf:"bytes,2,opt,name=Password,proto3" json:"Password,omitempty"`
+	OTPToken             string                                                       `protobuf:"bytes,3,opt,name=OTPToken,proto3" json:"OTPToken,omitempty"`
+	U2FRegisterResponse  *U2FRegisterResponse                                         `protobuf:"bytes,4,opt,name=U2FRegisterResponse" json:"U2FRegisterResponse,omitempty"`
+	Type                 github_com_gravitational_teleport_lib_services.UserTokenType `protobuf:"bytes,5,opt,name=Type,proto3,casttype=github.com/gravitational/teleport/lib/services.UserTokenType" json:"Type,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                                                     `json:"-"`
+	XXX_unrecognized     []byte                                                       `json:"-"`
+	XXX_sizecache        int32                                                        `json:"-"`
+}
+
+func (m *CreateOrResetUserRequest) Reset()         { *m = CreateOrResetUserRequest{} }
+func (m *CreateOrResetUserRequest) String() string { return proto.CompactTextString(m) }
+func (*CreateOrResetUserRequest) ProtoMessage()    {}
+func (*CreateOrResetUserRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_auth_bfb02b46b6079b80, []int{6}
+}
+func (m *CreateOrResetUserRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *CreateOrResetUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_CreateOrResetUserRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalTo(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (dst *CreateOrResetUserRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_CreateOrResetUserRequest.Merge(dst, src)
+}
+func (m *CreateOrResetUserRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *CreateOrResetUserRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_CreateOrResetUserRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_CreateOrResetUserRequest proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*Event)(nil), "proto.Event")
 	proto.RegisterType((*Watch)(nil), "proto.Watch")
 	proto.RegisterType((*GetUserTokenRequest)(nil), "proto.GetUserTokenRequest")
 	proto.RegisterType((*DeleteUserTokenRequest)(nil), "proto.DeleteUserTokenRequest")
+	proto.RegisterType((*CreateUserTokenRequest)(nil), "proto.CreateUserTokenRequest")
+	proto.RegisterType((*U2FRegisterResponse)(nil), "proto.U2FRegisterResponse")
+	proto.RegisterType((*CreateOrResetUserRequest)(nil), "proto.CreateOrResetUserRequest")
 	proto.RegisterEnum("proto.Operation", Operation_name, Operation_value)
 }
 
@@ -358,7 +498,8 @@ type AuthServiceClient interface {
 	WatchEvents(ctx context.Context, in *Watch, opts ...grpc.CallOption) (AuthService_WatchEventsClient, error)
 	// UpsertNode upserts node
 	UpsertNode(ctx context.Context, in *services.ServerV2, opts ...grpc.CallOption) (*services.KeepAlive, error)
-	UpsertUserToken(ctx context.Context, in *services.UserTokenV2, opts ...grpc.CallOption) (*empty.Empty, error)
+	CreateUserToken(ctx context.Context, in *CreateUserTokenRequest, opts ...grpc.CallOption) (*services.UserTokenV2, error)
+	CreateOrResetUser(ctx context.Context, in *CreateOrResetUserRequest, opts ...grpc.CallOption) (*services.WebSessionV2, error)
 	GetUserToken(ctx context.Context, in *GetUserTokenRequest, opts ...grpc.CallOption) (*services.UserTokenV2, error)
 	GetUserTokens(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (AuthService_GetUserTokensClient, error)
 	DeleteUserToken(ctx context.Context, in *DeleteUserTokenRequest, opts ...grpc.CallOption) (*empty.Empty, error)
@@ -447,9 +588,18 @@ func (c *authServiceClient) UpsertNode(ctx context.Context, in *services.ServerV
 	return out, nil
 }
 
-func (c *authServiceClient) UpsertUserToken(ctx context.Context, in *services.UserTokenV2, opts ...grpc.CallOption) (*empty.Empty, error) {
-	out := new(empty.Empty)
-	err := c.cc.Invoke(ctx, "/proto.AuthService/UpsertUserToken", in, out, opts...)
+func (c *authServiceClient) CreateUserToken(ctx context.Context, in *CreateUserTokenRequest, opts ...grpc.CallOption) (*services.UserTokenV2, error) {
+	out := new(services.UserTokenV2)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/CreateUserToken", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) CreateOrResetUser(ctx context.Context, in *CreateOrResetUserRequest, opts ...grpc.CallOption) (*services.WebSessionV2, error) {
+	out := new(services.WebSessionV2)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/CreateOrResetUser", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -515,7 +665,8 @@ type AuthServiceServer interface {
 	WatchEvents(*Watch, AuthService_WatchEventsServer) error
 	// UpsertNode upserts node
 	UpsertNode(context.Context, *services.ServerV2) (*services.KeepAlive, error)
-	UpsertUserToken(context.Context, *services.UserTokenV2) (*empty.Empty, error)
+	CreateUserToken(context.Context, *CreateUserTokenRequest) (*services.UserTokenV2, error)
+	CreateOrResetUser(context.Context, *CreateOrResetUserRequest) (*services.WebSessionV2, error)
 	GetUserToken(context.Context, *GetUserTokenRequest) (*services.UserTokenV2, error)
 	GetUserTokens(*empty.Empty, AuthService_GetUserTokensServer) error
 	DeleteUserToken(context.Context, *DeleteUserTokenRequest) (*empty.Empty, error)
@@ -590,20 +741,38 @@ func _AuthService_UpsertNode_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
-func _AuthService_UpsertUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(services.UserTokenV2)
+func _AuthService_CreateUserToken_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserTokenRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(AuthServiceServer).UpsertUserToken(ctx, in)
+		return srv.(AuthServiceServer).CreateUserToken(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.AuthService/UpsertUserToken",
+		FullMethod: "/proto.AuthService/CreateUserToken",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(AuthServiceServer).UpsertUserToken(ctx, req.(*services.UserTokenV2))
+		return srv.(AuthServiceServer).CreateUserToken(ctx, req.(*CreateUserTokenRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_CreateOrResetUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrResetUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).CreateOrResetUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.AuthService/CreateOrResetUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).CreateOrResetUser(ctx, req.(*CreateOrResetUserRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -674,8 +843,12 @@ var _AuthService_serviceDesc = grpc.ServiceDesc{
 			Handler:    _AuthService_UpsertNode_Handler,
 		},
 		{
-			MethodName: "UpsertUserToken",
-			Handler:    _AuthService_UpsertUserToken_Handler,
+			MethodName: "CreateUserToken",
+			Handler:    _AuthService_CreateUserToken_Handler,
+		},
+		{
+			MethodName: "CreateOrResetUser",
+			Handler:    _AuthService_CreateOrResetUser_Handler,
 		},
 		{
 			MethodName: "GetUserToken",
@@ -857,6 +1030,180 @@ func (m *DeleteUserTokenRequest) MarshalTo(dAtA []byte) (int, error) {
 	return i, nil
 }
 
+func (m *CreateUserTokenRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateUserTokenRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.User) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.User)))
+		i += copy(dAtA[i:], m.User)
+	}
+	dAtA[i] = 0x12
+	i++
+	i = encodeVarintAuth(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdDuration(m.TTL)))
+	n4, err := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.TTL, dAtA[i:])
+	if err != nil {
+		return 0, err
+	}
+	i += n4
+	if len(m.Type) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.Type)))
+		i += copy(dAtA[i:], m.Type)
+	}
+	if len(m.Roles) > 0 {
+		for _, s := range m.Roles {
+			dAtA[i] = 0x22
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if len(m.AllowedLogins) > 0 {
+		for _, s := range m.AllowedLogins {
+			dAtA[i] = 0x2a
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if len(m.KubeGroups) > 0 {
+		for _, s := range m.KubeGroups {
+			dAtA[i] = 0x32
+			i++
+			l = len(s)
+			for l >= 1<<7 {
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
+				l >>= 7
+				i++
+			}
+			dAtA[i] = uint8(l)
+			i++
+			i += copy(dAtA[i:], s)
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *U2FRegisterResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *U2FRegisterResponse) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.RegistrationData) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.RegistrationData)))
+		i += copy(dAtA[i:], m.RegistrationData)
+	}
+	if len(m.ClientData) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.ClientData)))
+		i += copy(dAtA[i:], m.ClientData)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
+func (m *CreateOrResetUserRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *CreateOrResetUserRequest) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	if len(m.Token) > 0 {
+		dAtA[i] = 0xa
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.Token)))
+		i += copy(dAtA[i:], m.Token)
+	}
+	if len(m.Password) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.Password)))
+		i += copy(dAtA[i:], m.Password)
+	}
+	if len(m.OTPToken) > 0 {
+		dAtA[i] = 0x1a
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.OTPToken)))
+		i += copy(dAtA[i:], m.OTPToken)
+	}
+	if m.U2FRegisterResponse != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(m.U2FRegisterResponse.Size()))
+		n5, err := m.U2FRegisterResponse.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n5
+	}
+	if len(m.Type) > 0 {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintAuth(dAtA, i, uint64(len(m.Type)))
+		i += copy(dAtA[i:], m.Type)
+	}
+	if m.XXX_unrecognized != nil {
+		i += copy(dAtA[i:], m.XXX_unrecognized)
+	}
+	return i, nil
+}
+
 func encodeVarintAuth(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
 		dAtA[offset] = uint8(v&0x7f | 0x80)
@@ -931,6 +1278,89 @@ func (m *DeleteUserTokenRequest) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Token)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *CreateUserTokenRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.User)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.TTL)
+	n += 1 + l + sovAuth(uint64(l))
+	l = len(m.Type)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	if len(m.Roles) > 0 {
+		for _, s := range m.Roles {
+			l = len(s)
+			n += 1 + l + sovAuth(uint64(l))
+		}
+	}
+	if len(m.AllowedLogins) > 0 {
+		for _, s := range m.AllowedLogins {
+			l = len(s)
+			n += 1 + l + sovAuth(uint64(l))
+		}
+	}
+	if len(m.KubeGroups) > 0 {
+		for _, s := range m.KubeGroups {
+			l = len(s)
+			n += 1 + l + sovAuth(uint64(l))
+		}
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *U2FRegisterResponse) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.RegistrationData)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	l = len(m.ClientData)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	if m.XXX_unrecognized != nil {
+		n += len(m.XXX_unrecognized)
+	}
+	return n
+}
+
+func (m *CreateOrResetUserRequest) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.Token)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	l = len(m.Password)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	l = len(m.OTPToken)
+	if l > 0 {
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	if m.U2FRegisterResponse != nil {
+		l = m.U2FRegisterResponse.Size()
+		n += 1 + l + sovAuth(uint64(l))
+	}
+	l = len(m.Type)
 	if l > 0 {
 		n += 1 + l + sovAuth(uint64(l))
 	}
@@ -1327,6 +1757,541 @@ func (m *DeleteUserTokenRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+func (m *CreateUserTokenRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAuth
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateUserTokenRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateUserTokenRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field User", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.User = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field TTL", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := github_com_gogo_protobuf_types.StdDurationUnmarshal(&m.TTL, dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = github_com_gravitational_teleport_lib_services.UserTokenType(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Roles", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Roles = append(m.Roles, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllowedLogins", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.AllowedLogins = append(m.AllowedLogins, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		case 6:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field KubeGroups", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.KubeGroups = append(m.KubeGroups, string(dAtA[iNdEx:postIndex]))
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAuth(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAuth
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *U2FRegisterResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAuth
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: U2FRegisterResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: U2FRegisterResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field RegistrationData", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.RegistrationData = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ClientData", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ClientData = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAuth(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAuth
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *CreateOrResetUserRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowAuth
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: CreateOrResetUserRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: CreateOrResetUserRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Token", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Token = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Password", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Password = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OTPToken", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OTPToken = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field U2FRegisterResponse", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.U2FRegisterResponse == nil {
+				m.U2FRegisterResponse = &U2FRegisterResponse{}
+			}
+			if err := m.U2FRegisterResponse.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Type", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowAuth
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthAuth
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Type = github_com_gravitational_teleport_lib_services.UserTokenType(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipAuth(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthAuth
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.XXX_unrecognized = append(m.XXX_unrecognized, dAtA[iNdEx:iNdEx+skippy]...)
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func skipAuth(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
@@ -1432,44 +2397,61 @@ var (
 	ErrIntOverflowAuth   = fmt.Errorf("proto: integer overflow")
 )
 
-func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_a6886c9a58e7f3a7) }
+func init() { proto.RegisterFile("auth.proto", fileDescriptor_auth_bfb02b46b6079b80) }
 
-var fileDescriptor_auth_a6886c9a58e7f3a7 = []byte{
-	// 562 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xcd, 0x6e, 0xd3, 0x5c,
-	0x10, 0x8d, 0x9b, 0xcf, 0xfd, 0xc8, 0xb4, 0x4d, 0xab, 0x69, 0xa9, 0x8c, 0x81, 0x38, 0xca, 0x2a,
-	0xfc, 0xc8, 0xae, 0x8c, 0x40, 0xc0, 0x06, 0x6a, 0x1a, 0x11, 0xa9, 0x08, 0x50, 0x9a, 0x04, 0x89,
-	0x4d, 0xe5, 0x24, 0x83, 0x63, 0xd5, 0xc9, 0x35, 0xd7, 0xd7, 0x91, 0xf2, 0x0a, 0x3c, 0x01, 0x2f,
-	0x84, 0xd4, 0x25, 0x4f, 0x10, 0x41, 0xd8, 0xe5, 0x29, 0x90, 0xaf, 0xf3, 0x5b, 0x25, 0x0b, 0x56,
-	0xf6, 0x3d, 0x33, 0xe7, 0x9c, 0xf9, 0x03, 0x70, 0x63, 0xd1, 0x35, 0x43, 0xce, 0x04, 0x43, 0x55,
-	0x7e, 0xf4, 0x23, 0x8f, 0x79, 0x4c, 0xfe, 0x5a, 0xc9, 0x5f, 0x1a, 0xd4, 0xef, 0x7a, 0x8c, 0x79,
-	0x01, 0x59, 0xf2, 0xd5, 0x8a, 0xbf, 0x58, 0xd4, 0x0b, 0xc5, 0x70, 0x1a, 0x7c, 0xe9, 0xf9, 0xa2,
-	0x1b, 0xb7, 0xcc, 0x36, 0xeb, 0x59, 0x1e, 0x77, 0x07, 0xbe, 0x70, 0x85, 0xcf, 0xfa, 0x6e, 0x60,
-	0x09, 0x0a, 0x28, 0x64, 0x5c, 0x58, 0x81, 0xdf, 0xb2, 0x22, 0xe2, 0x03, 0xbf, 0x4d, 0x91, 0x25,
-	0x86, 0x21, 0x45, 0x29, 0xb7, 0xf4, 0x6d, 0x0b, 0xd4, 0xca, 0x80, 0xfa, 0x02, 0x9f, 0xc3, 0x7f,
-	0xf5, 0x61, 0x48, 0x9a, 0x52, 0x54, 0xca, 0x79, 0xfb, 0x20, 0x8d, 0x9b, 0x1f, 0x42, 0xe2, 0x52,
-	0xcd, 0xc1, 0xc9, 0xc8, 0xc8, 0x27, 0xd4, 0xc7, 0xac, 0xe7, 0x0b, 0xe9, 0x5f, 0x93, 0x0c, 0xfc,
-	0x0c, 0xf9, 0x1a, 0x45, 0x2c, 0xe6, 0x6d, 0xaa, 0x92, 0xdb, 0x21, 0xae, 0x6d, 0x15, 0x95, 0xf2,
-	0x8e, 0xad, 0x99, 0x33, 0x4b, 0x73, 0x35, 0xee, 0x1c, 0x4f, 0x46, 0x06, 0xf2, 0x29, 0xb6, 0xd0,
-	0xab, 0x66, 0x6a, 0x37, 0x94, 0xf0, 0x12, 0xf6, 0xde, 0x10, 0x17, 0xa7, 0xb1, 0xe8, 0x32, 0xee,
-	0x8b, 0xa1, 0x96, 0x95, 0xd2, 0x77, 0x16, 0xd2, 0x2b, 0xe1, 0xa6, 0xed, 0xdc, 0x9b, 0x8c, 0x0c,
-	0xad, 0x4d, 0x5c, 0x5c, 0xba, 0x33, 0x74, 0xc5, 0x61, 0x55, 0xcf, 0x01, 0xb8, 0x35, 0xb3, 0x2c,
-	0xd9, 0xa0, 0x7e, 0x72, 0x45, 0xbb, 0x8b, 0x0f, 0x40, 0x3d, 0xf7, 0xfb, 0x9d, 0x48, 0x53, 0x8a,
-	0xd9, 0x72, 0xce, 0x39, 0x9c, 0x8c, 0x8c, 0xfd, 0xab, 0x04, 0x58, 0xea, 0x3d, 0xcd, 0x28, 0x3d,
-	0x83, 0xc3, 0xb7, 0x24, 0x1a, 0x11, 0xf1, 0x3a, 0xbb, 0xa2, 0x7e, 0x8d, 0xbe, 0xc6, 0x14, 0x09,
-	0x34, 0x40, 0x95, 0x6f, 0x39, 0xce, 0x9c, 0x93, 0x9b, 0x8c, 0x0c, 0x55, 0xc8, 0x84, 0x14, 0x2f,
-	0xbd, 0x80, 0xe3, 0x33, 0x0a, 0x48, 0xd0, 0x3f, 0x53, 0x1f, 0x16, 0x21, 0x37, 0x5f, 0x0b, 0xfe,
-	0x0f, 0xd9, 0x8f, 0x8d, 0xfa, 0x41, 0x06, 0x01, 0xb6, 0xcf, 0x2a, 0xef, 0x2a, 0xf5, 0xca, 0x81,
-	0x62, 0xff, 0xc8, 0xc2, 0x4e, 0xd2, 0xe2, 0x45, 0x3a, 0x24, 0x7c, 0x05, 0xf9, 0x0b, 0xea, 0x77,
-	0xce, 0x89, 0xc2, 0xd3, 0xc0, 0x1f, 0x50, 0x84, 0x87, 0x8b, 0x01, 0xce, 0x51, 0xfd, 0xd8, 0x4c,
-	0xcf, 0xcc, 0x9c, 0x9d, 0x99, 0x59, 0x49, 0x5a, 0x2d, 0x2b, 0xf8, 0x08, 0x76, 0xe4, 0x64, 0xe4,
-	0xa9, 0x44, 0xb8, 0x3b, 0xbd, 0x0e, 0x89, 0xe9, 0xb3, 0x97, 0x0c, 0x9e, 0x28, 0xf8, 0x14, 0xa0,
-	0x11, 0x46, 0xc4, 0xc5, 0x7b, 0xd6, 0x21, 0xc4, 0x85, 0x53, 0x52, 0x0e, 0xf1, 0xa6, 0xad, 0xaf,
-	0x73, 0xc7, 0xd7, 0xb0, 0x9f, 0xd2, 0xe6, 0x13, 0xc1, 0xdb, 0x8b, 0xbc, 0x39, 0xd8, 0xb4, 0x37,
-	0xd5, 0x89, 0xa7, 0xb0, 0xbb, 0xbc, 0x0b, 0xd4, 0xa7, 0x85, 0xad, 0x59, 0x90, 0xbe, 0x5e, 0x1a,
-	0x1d, 0xd8, 0x5b, 0xce, 0x8e, 0x70, 0x83, 0xd7, 0x06, 0x7e, 0x29, 0x73, 0xa2, 0x60, 0x15, 0xf6,
-	0x6f, 0xac, 0x16, 0xef, 0x4f, 0x2b, 0x59, 0xbf, 0xf2, 0x4d, 0x0d, 0x39, 0x47, 0xd7, 0xbf, 0x0b,
-	0x99, 0xeb, 0x71, 0x41, 0xf9, 0x39, 0x2e, 0x28, 0xbf, 0xc6, 0x05, 0xe5, 0xfb, 0x9f, 0x42, 0xa6,
-	0xb5, 0x2d, 0xb3, 0x9e, 0xfc, 0x0d, 0x00, 0x00, 0xff, 0xff, 0x04, 0x88, 0x52, 0x62, 0x3e, 0x04,
-	0x00, 0x00,
+var fileDescriptor_auth_bfb02b46b6079b80 = []byte{
+	// 846 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x54, 0xcd, 0x6e, 0xeb, 0x44,
+	0x14, 0x8e, 0x93, 0xb8, 0xb4, 0xa7, 0xb7, 0x3f, 0x4c, 0x4b, 0xe4, 0x6b, 0x20, 0xae, 0xb2, 0x2a,
+	0x17, 0x64, 0x57, 0x41, 0x17, 0x01, 0x42, 0x82, 0xba, 0x0d, 0xad, 0xd4, 0x88, 0x56, 0x6e, 0xda,
+	0x2b, 0xb1, 0xa9, 0x9c, 0xe4, 0xe0, 0x5a, 0x75, 0x33, 0x66, 0x66, 0xdc, 0xab, 0xbe, 0x02, 0xe2,
+	0x01, 0xae, 0x78, 0x17, 0xf6, 0x5d, 0xf2, 0x04, 0x06, 0xca, 0x2e, 0x8f, 0xc0, 0x0a, 0x79, 0xc6,
+	0xce, 0x4f, 0x93, 0x2c, 0x2a, 0xb1, 0xb2, 0xe7, 0x3b, 0xdf, 0xf9, 0xce, 0xcc, 0xf9, 0x03, 0xf0,
+	0x13, 0x71, 0x6d, 0xc7, 0x8c, 0x0a, 0x4a, 0x74, 0xf9, 0x31, 0xb7, 0x03, 0x1a, 0x50, 0xf9, 0xeb,
+	0x64, 0x7f, 0xca, 0x68, 0x7e, 0x18, 0x50, 0x1a, 0x44, 0xe8, 0xc8, 0x53, 0x37, 0xf9, 0xc9, 0xc1,
+	0xdb, 0x58, 0xdc, 0xe7, 0xc6, 0xfa, 0x53, 0x63, 0x3f, 0x61, 0xbe, 0x08, 0xe9, 0x20, 0xb7, 0x7f,
+	0x1d, 0x84, 0xe2, 0x3a, 0xe9, 0xda, 0x3d, 0x7a, 0xeb, 0x04, 0xcc, 0xbf, 0x0b, 0x85, 0xb4, 0xfa,
+	0x91, 0x23, 0x30, 0xc2, 0x98, 0x32, 0xe1, 0x44, 0x61, 0xd7, 0xe1, 0xc8, 0xee, 0xc2, 0x1e, 0x72,
+	0x47, 0xdc, 0xc7, 0xc8, 0x95, 0x6f, 0xe3, 0x97, 0x32, 0xe8, 0xad, 0x3b, 0x1c, 0x08, 0xf2, 0x25,
+	0x54, 0x3b, 0xf7, 0x31, 0x1a, 0xda, 0x8e, 0xb6, 0xbb, 0xde, 0xdc, 0x54, 0x76, 0xfb, 0x34, 0x46,
+	0x15, 0xcb, 0x25, 0xc3, 0xd4, 0x5a, 0xcf, 0x5c, 0x3f, 0xa3, 0xb7, 0xa1, 0x90, 0xf7, 0xf3, 0xa4,
+	0x07, 0xf9, 0x11, 0xd6, 0x3d, 0xe4, 0x34, 0x61, 0x3d, 0x3c, 0x46, 0xbf, 0x8f, 0xcc, 0x28, 0xef,
+	0x68, 0xbb, 0xab, 0x4d, 0xc3, 0x2e, 0x42, 0xda, 0xd3, 0x76, 0xb7, 0x36, 0x4c, 0x2d, 0xc2, 0x72,
+	0x6c, 0xac, 0x77, 0x5c, 0xf2, 0x9e, 0x28, 0x91, 0x2b, 0x58, 0x3b, 0x40, 0x26, 0xf6, 0x13, 0x71,
+	0x4d, 0x59, 0x28, 0xee, 0x8d, 0x8a, 0x94, 0x7e, 0x39, 0x96, 0x9e, 0x32, 0x5f, 0x36, 0xdd, 0x8f,
+	0x86, 0xa9, 0x65, 0xf4, 0x90, 0x89, 0x2b, 0xbf, 0x40, 0xa7, 0x22, 0x4c, 0xeb, 0xb9, 0x00, 0xcb,
+	0x45, 0xc8, 0x46, 0x13, 0xf4, 0x37, 0xbe, 0xe8, 0x5d, 0x93, 0x4f, 0x40, 0x3f, 0x09, 0x07, 0x7d,
+	0x6e, 0x68, 0x3b, 0x95, 0xdd, 0x15, 0x77, 0x6b, 0x98, 0x5a, 0x1b, 0x37, 0x19, 0x30, 0xf1, 0x76,
+	0xc5, 0x68, 0x7c, 0x01, 0x5b, 0x47, 0x28, 0x2e, 0x38, 0xb2, 0x0e, 0xbd, 0xc1, 0x81, 0x87, 0x3f,
+	0x27, 0xc8, 0x05, 0xb1, 0x40, 0x97, 0x67, 0x99, 0xce, 0x15, 0x77, 0x65, 0x98, 0x5a, 0xba, 0x90,
+	0x04, 0x85, 0x37, 0xbe, 0x82, 0xda, 0x21, 0x46, 0x28, 0xf0, 0xf9, 0xae, 0xbf, 0x97, 0xa1, 0x76,
+	0xc0, 0xd0, 0x9f, 0xe3, 0x4b, 0xa0, 0x9a, 0x61, 0xca, 0xd5, 0x93, 0xff, 0xe4, 0x35, 0x54, 0x3a,
+	0x9d, 0x76, 0x5e, 0x93, 0x97, 0xb6, 0x6a, 0x26, 0xbb, 0x68, 0x26, 0xfb, 0x30, 0x6f, 0x26, 0x77,
+	0xf9, 0x21, 0xb5, 0x4a, 0xef, 0xfe, 0xb4, 0x34, 0x2f, 0xe3, 0x93, 0x4e, 0xde, 0x0f, 0x15, 0x79,
+	0x8b, 0xef, 0xfe, 0x4d, 0xad, 0x6f, 0x9e, 0xd7, 0x67, 0xf6, 0xe8, 0x76, 0x99, 0x4e, 0xde, 0x2b,
+	0x16, 0xe8, 0x1e, 0x8d, 0x90, 0x1b, 0x55, 0x99, 0x59, 0xf9, 0x38, 0x96, 0x01, 0x9e, 0xc2, 0xc9,
+	0x1e, 0xac, 0xed, 0x47, 0x11, 0x7d, 0x8b, 0xfd, 0x36, 0x0d, 0xc2, 0x01, 0x37, 0x74, 0x49, 0x84,
+	0x61, 0x6a, 0x2d, 0x45, 0x12, 0xf1, 0xa6, 0x09, 0xc4, 0x01, 0x38, 0x49, 0xba, 0x78, 0xc4, 0x68,
+	0x12, 0x73, 0x63, 0x49, 0xd2, 0x37, 0x86, 0xa9, 0xb5, 0x7a, 0x93, 0x74, 0xf1, 0x2a, 0x90, 0xb0,
+	0x37, 0x41, 0x69, 0xf8, 0xb0, 0x75, 0xd1, 0xfc, 0xde, 0xc3, 0x20, 0xe4, 0x02, 0x99, 0x87, 0x3c,
+	0xa6, 0x03, 0x8e, 0xe4, 0x15, 0x6c, 0x2a, 0x4c, 0xe5, 0xe3, 0xd0, 0x17, 0x7e, 0x9e, 0xc7, 0x19,
+	0x9c, 0xd4, 0x01, 0x0e, 0xa2, 0x10, 0x07, 0x42, 0xb2, 0xca, 0x92, 0x35, 0x81, 0x34, 0x7e, 0x2d,
+	0x83, 0xa1, 0x4a, 0x74, 0x9a, 0x05, 0x50, 0x0d, 0x52, 0x14, 0x69, 0x7b, 0xaa, 0xc0, 0x79, 0x55,
+	0x89, 0x09, 0xcb, 0x67, 0x3e, 0xe7, 0x6f, 0x29, 0xeb, 0xe7, 0x82, 0xa3, 0x73, 0x66, 0x3b, 0xed,
+	0x9c, 0x29, 0xa7, 0x8a, 0xb2, 0x15, 0x67, 0xd2, 0x9e, 0xfb, 0x1a, 0xa3, 0x2a, 0xcb, 0x6d, 0xe6,
+	0x63, 0x3c, 0x87, 0xe1, 0xcd, 0x4d, 0x42, 0x51, 0x75, 0xfd, 0xff, 0xac, 0xfa, 0xab, 0x1d, 0x58,
+	0x19, 0x2d, 0x12, 0xf2, 0x1e, 0x54, 0xce, 0x2e, 0x3a, 0x9b, 0x25, 0x02, 0xb0, 0x74, 0xd8, 0x6a,
+	0xb7, 0x3a, 0xad, 0x4d, 0xad, 0xf9, 0x5b, 0x15, 0x56, 0xb3, 0xa1, 0x3c, 0x57, 0x32, 0xe4, 0x5b,
+	0x58, 0x3f, 0xc7, 0x41, 0xff, 0x04, 0x31, 0xde, 0x8f, 0xc2, 0x3b, 0xe4, 0x64, 0x6b, 0x3c, 0xf2,
+	0x23, 0xd4, 0xac, 0xcd, 0xb4, 0x73, 0x2b, 0x1b, 0xce, 0x5d, 0x8d, 0x7c, 0x0a, 0xab, 0x72, 0x96,
+	0xe5, 0x72, 0xe3, 0xe4, 0x45, 0x9e, 0x08, 0x89, 0x99, 0xc5, 0x49, 0x1a, 0xf7, 0x34, 0xf2, 0x1a,
+	0xe0, 0x22, 0xe6, 0xc8, 0xc4, 0x0f, 0xb4, 0x8f, 0x84, 0x8c, 0x23, 0x65, 0xd7, 0x41, 0x76, 0xd9,
+	0x34, 0xe7, 0x45, 0x27, 0x47, 0xb0, 0xf1, 0x64, 0x0e, 0xc9, 0xc7, 0xb9, 0xf2, 0xfc, 0xf9, 0x34,
+	0x3f, 0xb0, 0x67, 0xf3, 0x74, 0xd9, 0x24, 0x6d, 0x78, 0x7f, 0xa6, 0x5b, 0x88, 0x35, 0x25, 0x35,
+	0xdb, 0x47, 0x66, 0x6d, 0x2c, 0xf6, 0x06, 0xbb, 0xe7, 0xc8, 0x79, 0x48, 0x33, 0xb5, 0x7d, 0x78,
+	0x31, 0xb9, 0x92, 0x48, 0xd1, 0x04, 0x73, 0xf6, 0xd4, 0xa2, 0x0b, 0xb9, 0xb0, 0x36, 0xc9, 0xe6,
+	0x64, 0x41, 0xa2, 0x17, 0xf8, 0x37, 0x4a, 0x7b, 0x1a, 0x39, 0x86, 0x8d, 0x27, 0x1b, 0x6e, 0x94,
+	0x9d, 0xf9, 0x9b, 0x6f, 0x51, 0x35, 0xdd, 0xed, 0x87, 0xbf, 0xeb, 0xa5, 0x87, 0xc7, 0xba, 0xf6,
+	0xc7, 0x63, 0x5d, 0xfb, 0xeb, 0xb1, 0xae, 0xbd, 0xfb, 0xa7, 0x5e, 0xea, 0x2e, 0x49, 0xd6, 0xe7,
+	0xff, 0x05, 0x00, 0x00, 0xff, 0xff, 0x7f, 0x1f, 0xd4, 0xb3, 0x65, 0x07, 0x00, 0x00,
 }

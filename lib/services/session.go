@@ -67,36 +67,36 @@ func NewWebSession(name string, spec WebSessionSpecV2) WebSession {
 	}
 }
 
-// WebSessionV2 is version 2 spec for session
-type WebSessionV2 struct {
-	// Kind is a resource kind
-	Kind string `json:"kind"`
-	// Version is version
-	Version string `json:"version"`
-	// Metadata is connector metadata
-	Metadata Metadata `json:"metadata"`
-	// Spec contains cert authority specification
-	Spec WebSessionSpecV2 `json:"spec"`
-}
-
-// WebSessionSpecV2 is a spec for V2 session
-type WebSessionSpecV2 struct {
-	// User is a user this web session belongs to
-	User string `json:"user"`
-	// Pub is a public certificate signed by auth server
-	Pub []byte `json:"pub"`
-	// Priv is a private OpenSSH key used to auth with SSH nodes
-	Priv []byte `json:"priv,omitempty"`
-	// TLSCert is a TLS certificate used to auth with auth server
-	TLSCert []byte `json:"tls_cert,omitempty"`
-	// BearerToken is a special bearer token used for additional
-	// bearer authentication
-	BearerToken string `json:"bearer_token"`
-	// BearerTokenExpires - absolute time when token expires
-	BearerTokenExpires time.Time `json:"bearer_token_expires"`
-	// Expires - absolute time when session expires
-	Expires time.Time `json:"expires"`
-}
+//// WebSessionV2 is version 2 spec for session
+//type WebSessionV2 struct {
+//	// Kind is a resource kind
+//	Kind string `json:"kind"`
+//	// Version is version
+//	Version string `json:"version"`
+//	// Metadata is connector metadata
+//	Metadata Metadata `json:"metadata"`
+//	// Spec contains cert authority specification
+//	Spec WebSessionSpecV2 `json:"spec"`
+//}
+//
+//// WebSessionSpecV2 is a spec for V2 session
+//type WebSessionSpecV2 struct {
+//	// User is a user this web session belongs to
+//	User string `json:"user"`
+//	// Pub is a public certificate signed by auth server
+//	Pub []byte `json:"pub"`
+//	// Priv is a private OpenSSH key used to auth with SSH nodes
+//	Priv []byte `json:"priv,omitempty"`
+//	// TLSCert is a TLS certificate used to auth with auth server
+//	TLSCert []byte `json:"tls_cert,omitempty"`
+//	// BearerToken is a special bearer token used for additional
+//	// bearer authentication
+//	BearerToken string `json:"bearer_token"`
+//	// BearerTokenExpires - absolute time when token expires
+//	BearerTokenExpires time.Time `json:"bearer_token_expires"`
+//	// Expires - absolute time when session expires
+//	Expires time.Time `json:"expires"`
+//}
 
 // GetMetadata returns metadata
 func (ws *WebSessionV2) GetMetadata() Metadata {

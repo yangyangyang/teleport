@@ -196,8 +196,41 @@ message UserTokenV2 {
 
 message UserTokenSpecV2  {
     string Token = 1 [(gogoproto.jsontag) = "token"];
-	repeated string Roles = 3 [(gogoproto.jsontag) = "roles,omitempty"];
-    string User = 4 [(gogoproto.jsontag) = "user,omitempty"];
-    string Key = 5 [(gogoproto.jsontag) = "key,omitempty"];
-    bytes QRCode = 6 [(gogoproto.jsontag) = "qr_code,omitempty"];
+    string User = 2 [(gogoproto.jsontag) = "user,omitempty"];
+    string Key = 3 [(gogoproto.jsontag) = "key,omitempty"];
+    bytes QRCode = 4 [(gogoproto.jsontag) = "qr_code,omitempty"];
+    string Type = 5 [(gogoproto.jsontag) = "type", (gogoproto.casttype) = "UserTokenType"];
+
+	repeated string Roles = 6 [(gogoproto.jsontag) = "roles,omitempty"];
+	repeated string AllowedLogins = 7 [(gogoproto.jsontag) = "logins,omitempty"];
+    repeated string KubeGroups = 8 [(gogoproto.jsontag) = "kube_groups,omitempty"];
+}
+
+message WebSessionV2 {
+	// Kind is a resource kind
+	string Kind = 1 [(gogoproto.jsontag) = "kind"];
+	// Version is version
+	string Version = 2 [(gogoproto.jsontag) = "version"];
+	// Metadata is connector metadata
+	Metadata Metadata = 3 [(gogoproto.nullable) = false, (gogoproto.jsontag) = "metadata"];
+	// Spec contains cert authority specification
+	WebSessionSpecV2 Spec = 4 [(gogoproto.nullable) = false, (gogoproto.jsontag) = "spec"];
+}
+
+// WebSessionSpecV2 is the specification for a web session.
+message WebSessionSpecV2 {
+	// User is the Teleport user to whom this web session belongs.
+    string User = 1 [(gogoproto.jsontag) = "user"];
+    // Pub is a SSH certificate signed by the CA.
+    bytes Pub = 2 [(gogoproto.jsontag) = "pub"]; 
+    // Priv is a SSH private key.
+    bytes Priv = 3 [(gogoproto.jsontag) = "priv,omitempty"];
+    // TLSCert is a TLS certificate signed by the CA. 
+    bytes TLSCert = 4 [(gogoproto.jsontag) = "tls_cert,omitempty"];
+    // BearerToken is a token used to set the session cookie.
+    string BearerToken = 5 [(gogoproto.jsontag) = "bearer_token"];
+    // BearerTokenExpires is the absolute time when the bearer token expires.
+    google.protobuf.Timestamp BearerTokenExpires = 6 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "bearer_token_expires"];
+	// Expires is the absolute time when session expires.
+	google.protobuf.Timestamp Expires = 7 [(gogoproto.stdtime) = true, (gogoproto.nullable) = false, (gogoproto.jsontag) = "expires"];
 }

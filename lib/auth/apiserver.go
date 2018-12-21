@@ -17,6 +17,7 @@ limitations under the License.
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -26,6 +27,7 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/lib/auth/proto"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib"
 	"github.com/gravitational/teleport/lib/services"
@@ -100,9 +102,10 @@ func NewAPIServer(config *APIConfig) http.Handler {
 
 	// DELETE IN(3.4.0): User signup tokens moved to GRPC server.
 	//srv.GET("/:version/signuptokens", srv.withAuth(srv.getSignupTokens))
-	srv.GET("/:version/signuptokens/:token", srv.withAuth(srv.getSignupTokenData))
-	srv.POST("/:version/signuptokens/users", srv.withAuth(srv.createUserWithToken))
-	srv.POST("/:version/signuptokens", srv.withAuth(srv.createSignupToken))
+
+	srv.GET("/:version/signuptokens/:token", srv.withAuth(srv.getSignupTokenData))  // this is legacy, delete this in the next release.
+	srv.POST("/:version/signuptokens/users", srv.withAuth(srv.createUserWithToken)) // keep this endpoint, but call new apis.
+	srv.POST("/:version/signuptokens", srv.withAuth(srv.createSignupToken))         // keep this endpoint, but call new apis.
 
 	// Servers and presence heartbeat
 	srv.POST("/:version/namespaces/:namespace/nodes", srv.withAuth(srv.upsertNode))
@@ -205,8 +208,8 @@ func NewAPIServer(config *APIConfig) http.Handler {
 	srv.POST("/:version/github/requests/validate", srv.withAuth(srv.validateGithubAuthCallback))
 
 	// U2F
-	srv.GET("/:version/u2f/signuptokens/:token", srv.withAuth(srv.getSignupU2FRegisterRequest))
-	srv.POST("/:version/u2f/users", srv.withAuth(srv.createUserWithU2FToken))
+	srv.GET("/:version/u2f/signuptokens/:token", srv.withAuth(srv.getSignupU2FRegisterRequest)) // keep this but migrate to new api.
+	srv.POST("/:version/u2f/users", srv.withAuth(srv.createUserWithU2FToken))                   // keep this but migrate to new api.
 	srv.POST("/:version/u2f/users/:user/sign", srv.withAuth(srv.u2fSignRequest))
 	srv.GET("/:version/u2f/appid", srv.withAuth(srv.getU2FAppID))
 
@@ -1124,23 +1127,35 @@ func (s *APIServer) getSession(auth ClientI, w http.ResponseWriter, r *http.Requ
 //	return tokens, nil
 //}
 
+// LEGEACY DELETE IN NEXT
 type getSignupTokenDataResponse struct {
 	User  string `json:"user"`
 	QRImg []byte `json:"qrimg"`
 }
 
+// LEGEACY DELETE IN NEXT
 // getSignupTokenData returns the signup data for a token.
 func (s *APIServer) getSignupTokenData(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
-	token := p.ByName("token")
+	//token := p.ByName("token")
 
-	user, otpQRCode, err := auth.GetSignupTokenData(token)
+	//user, otpQRCode, err := auth.GetSignupTokenData(token)
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+
+	//return &getSignupTokenDataResponse{
+	//	User:  user,
+	//	QRImg: otpQRCode,
+	//}, nil
+
+	userToken, err := auth.GetUserToken(context.Background(), p.ByName("token"))
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	return &getSignupTokenDataResponse{
-		User:  user,
-		QRImg: otpQRCode,
+		User:  userToken.GetName(),
+		QRImg: userToken.GetQRCode(),
 	}, nil
 }
 
@@ -1158,6 +1173,7 @@ type createSignupTokenReq struct {
 	TTL  time.Duration   `json:"ttl"`
 }
 
+// legacy
 func (s *APIServer) createSignupToken(auth ClientI, w http.ResponseWriter, r *http.Request, p httprouter.Params, version string) (interface{}, error) {
 	var req *createSignupTokenReq
 
@@ -1169,12 +1185,20 @@ func (s *APIServer) createSignupToken(auth ClientI, w http.ResponseWriter, r *ht
 		return nil, trace.Wrap(err)
 	}
 
-	token, err := auth.CreateSignupToken(req.User, req.TTL)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
+	//token, err := auth.CreateSignupToken(req.User, req.TTL)
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+	//return token, nil
 
-	return token, nil
+	userToken, err := auth.CreateUserToken(context.Background(), &proto.CreateUserTokenRequest{
+		User: req.User.V2().GetName(),
+		Type: services.CreateToken,
+		TTL:  req.TTL,
+	})
+
+	return userToken.GetToken(), nil
+
 }
 
 type createUserWithTokenReq struct {

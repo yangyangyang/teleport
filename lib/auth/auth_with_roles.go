@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/lib/auth/proto"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/services"
@@ -730,16 +731,28 @@ func (a *AuthWithRoles) CreateSignupToken(user services.UserV1, ttl time.Duratio
 	return a.authServer.CreateSignupToken(user, ttl)
 }
 
-// GetSignupTokens returns all the user signup tokens in the cluster.
-func (a *AuthWithRoles) GetSignupTokens() ([]services.SignupToken, error) {
-	if err := a.action(defaults.Namespace, services.KindToken, services.VerbRead); err != nil {
+func (a *AuthWithRoles) CreateUserToken(ctx context.Context, req *proto.CreateUserTokenRequest) (services.UserToken, error) {
+	if err := a.action(defaults.Namespace, services.KindUser, services.VerbCreate); err != nil {
 		return nil, trace.Wrap(err)
 	}
-	if err := a.action(defaults.Namespace, services.KindToken, services.VerbList); err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return a.authServer.GetSignupTokens()
+	return a.authServer.CreateUserToken(ctx, req)
 }
+
+func (a *AuthWithRoles) CreateOrResetUser(ctx context.Context, req *proto.CreateOrResetUserRequest) (services.WebSession, error) {
+	// tokens are their own authz mechanism, no need to double check
+	return a.authServer.CreateOrResetUser(ctx, req)
+}
+
+//// GetSignupTokens returns all the user signup tokens in the cluster.
+//func (a *AuthWithRoles) GetSignupTokens() ([]services.SignupToken, error) {
+//	if err := a.action(defaults.Namespace, services.KindToken, services.VerbRead); err != nil {
+//		return nil, trace.Wrap(err)
+//	}
+//	if err := a.action(defaults.Namespace, services.KindToken, services.VerbList); err != nil {
+//		return nil, trace.Wrap(err)
+//	}
+//	return a.authServer.GetSignupTokens()
+//}
 
 func (a *AuthWithRoles) GetSignupTokenData(token string) (user string, otpQRCode []byte, err error) {
 	// signup token are their own authz resource

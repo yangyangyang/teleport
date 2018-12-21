@@ -25,11 +25,13 @@ package auth
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image/png"
 	"time"
 
 	"github.com/gravitational/teleport"
+	"github.com/gravitational/teleport/lib/auth/proto"
 	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/utils"
@@ -39,6 +41,134 @@ import (
 
 	"github.com/tstranex/u2f"
 )
+
+func (s *AuthServer) CreateUserToken(ctx context.Context, req *proto.CreateUserTokenRequest) (services.UserToken, error) {
+	// Make sure the TTL is a valid value.
+	if req.TTL > defaults.MaxSignupTokenTTL {
+		return nil, trace.BadParameter("failed to invite user: maximum signup token TTL is %v hours", int(defaults.MaxSignupTokenTTL/time.Hour))
+	}
+	if req.TTL == 0 || req.TTL > defaults.MaxSignupTokenTTL {
+		req.TTL = defaults.SignupTokenTTL
+	}
+
+	// If the token is a create token, make sure the user does not already exist.
+	if req.Type == services.CreateToken {
+		_, err := s.GetPasswordHash(req.User)
+		if err == nil {
+			return nil, trace.BadParameter("user '%v' already exists", req.User)
+		}
+	}
+
+	token, err := utils.CryptoRandomHex(TokenLenBytes)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	// This OTP secret and QR code are never actually used. The OTP secret and
+	// QR code are rotated every time the signup link is show to the user, see
+	// the "GetSignupTokenData" function for details on why this is done. We
+	// generate a OTP token because it causes no harm and makes tests easier to
+	// write.
+	accountName := req.User + "@" + s.AuthServiceName
+	otpKey, otpQRCode, err := s.initializeTOTP(accountName)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	userToken, err := services.NewUserToken(services.UserTokenSpecV2{
+		Token:  token,
+		User:   req.User,
+		Type:   req.Type,
+		Key:    otpKey,
+		QRCode: otpQRCode,
+	})
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	err = s.UpsertUserToken(ctx, userToken)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	log.Infof("Created user %v token for '%v' with TTL of %v.", req.Type, req.User, req.TTL)
+
+	return userToken, nil
+}
+
+func (s *AuthServer) CreateOrResetUser(ctx context.Context, req *proto.CreateOrResetUserRequest) (services.WebSession, error) {
+	userToken, err := s.GetUserToken(ctx, req.Token)
+	if err != nil {
+		return nil, trace.AccessDenied("expired or incorrect signup token")
+	}
+
+	authPreference, err := s.GetAuthPreference()
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	switch authPreference.GetSecondFactor() {
+	case teleport.OFF:
+		err = s.UpsertPassword(userToken.GetName(), []byte(req.Password))
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	case teleport.OTP, teleport.TOTP, teleport.HOTP:
+		err = s.UpsertTOTP(userToken.GetName(), userToken.GetKey())
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		err = s.CheckOTP(userToken.GetName(), req.OTPToken)
+		if err != nil {
+			log.Debugf("failed to validate a token: %v", err)
+			return nil, trace.AccessDenied("failed to validate a token")
+		}
+
+		err = s.UpsertPassword(userToken.GetName(), []byte(req.Password))
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	case teleport.U2F:
+		response := u2f.RegisterResponse{
+			ClientData:       req.U2FRegisterResponse.ClientData,
+			RegistrationData: req.U2FRegisterResponse.RegistrationData,
+		}
+
+		challenge, err := s.GetU2FRegisterChallenge(userToken.GetToken())
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		reg, err := u2f.Register(response, *challenge, &u2f.Config{SkipAttestationVerify: true})
+		if err != nil {
+			log.Error(trace.DebugReport(err))
+			return nil, trace.Wrap(err)
+		}
+
+		err = s.UpsertU2FRegistration(userToken.GetName(), reg)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		err = s.UpsertU2FRegistrationCounter(userToken.GetName(), 0)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		err = s.UpsertPassword(userToken.GetName(), []byte(req.Password))
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+	default:
+		return nil, trace.AccessDenied("unknown second factor")
+	}
+
+	// create services.User and services.WebSession
+	webSession, err := s.createUserAndSession(userToken)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+
+	return webSession, nil
+}
 
 // CreateSignupToken creates one time token for creating account for the user
 // For each token it creates username and otp generator
@@ -50,6 +180,10 @@ func (s *AuthServer) CreateSignupToken(userv1 services.UserV1, ttl time.Duration
 
 	if ttl > defaults.MaxSignupTokenTTL {
 		return "", trace.BadParameter("failed to invite user: maximum signup token TTL is %v hours", int(defaults.MaxSignupTokenTTL/time.Hour))
+	}
+	// SET TTL HERE!!
+	if ttl == 0 || ttl > defaults.MaxSignupTokenTTL {
+		ttl = defaults.SignupTokenTTL
 	}
 
 	// make sure that connectors actually exist
@@ -71,12 +205,12 @@ func (s *AuthServer) CreateSignupToken(userv1 services.UserV1, ttl time.Duration
 		}
 	}
 
-	//// TODO(rjones): TOCTOU, instead try to create signup token for user and fail
-	//// when unable to.
-	//_, err := s.GetPasswordHash(user.GetName())
-	//if err == nil {
-	//	return "", trace.BadParameter("user '%s' already exists", user.GetName())
-	//}
+	// TODO(rjones): TOCTOU, instead try to create signup token for user and fail
+	// when unable to.
+	_, err := s.GetPasswordHash(user.GetName())
+	if err == nil {
+		return "", trace.BadParameter("user '%s' already exists", user.GetName())
+	}
 
 	token, err := utils.CryptoRandomHex(TokenLenBytes)
 	if err != nil {
@@ -94,24 +228,36 @@ func (s *AuthServer) CreateSignupToken(userv1 services.UserV1, ttl time.Duration
 		return "", trace.Wrap(err)
 	}
 
-	// create and upsert signup token
-	tokenData := services.SignupToken{
-		Token:     token,
-		User:      userv1,
-		OTPKey:    otpKey,
-		OTPQRCode: otpQRCode,
-	}
-
-	if ttl == 0 || ttl > defaults.MaxSignupTokenTTL {
-		ttl = defaults.SignupTokenTTL
-	}
-
-	err = s.UpsertSignupToken(token, tokenData, ttl)
+	userToken, err := services.NewUserToken(services.UserTokenSpecV2{
+		Token:         token,
+		User:          userv1.V2().GetName(),
+		Key:           otpKey,
+		QRCode:        otpQRCode,
+		Roles:         userv1.Roles,
+		AllowedLogins: userv1.AllowedLogins,
+		KubeGroups:    userv1.KubeGroups,
+	})
 	if err != nil {
 		return "", trace.Wrap(err)
 	}
+	err = s.UpsertUserToken(context.Background(), userToken)
+	if err != nil {
+		return "", trace.Wrap(err)
+	}
+	//// create and upsert signup token
+	//tokenData := services.SignupToken{
+	//	Token:     token,
+	//	User:      userv1,
+	//	OTPKey:    otpKey,
+	//	OTPQRCode: otpQRCode,
+	//}
 
-	log.Infof("[AUTH API] created the signup token for %q", user)
+	//err = s.UpsertSignupToken(token, tokenData, ttl)
+	//if err != nil {
+	//	return "", trace.Wrap(err)
+	//}
+
+	log.Infof("Created user %v token for '%v' with TTL of %v.", userv1.Name, ttl)
 	return token, nil
 }
 
@@ -142,23 +288,28 @@ func (s *AuthServer) initializeTOTP(accountName string) (key string, qr []byte, 
 // extract the OTP key from the QR code, then allow the user to signup with
 // the same OTP token.
 func (s *AuthServer) rotateAndFetchSignupToken(token string) (*services.SignupToken, error) {
-	var err error
-
-	// Fetch original signup token.
-	st, err := s.GetSignupToken(token)
+	//// Fetch original signup token.
+	//st, err := s.GetSignupToken(token)
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+	userToken, err := s.GetUserToken(context.Background(), token)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	// Generate and set new OTP code for user in *services.SignupToken.
-	accountName := st.User.V2().GetName() + "@" + s.AuthServiceName
-	st.OTPKey, st.OTPQRCode, err = s.initializeTOTP(accountName)
+	accountName := userToken.GetUser() + "@" + s.AuthServiceName
+	otpKey, otpQRCode, err := s.initializeTOTP(accountName)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
+	userToken.SetKey(otpKey)
+	userToken.SetQRCode(otpQRCode)
 
 	// Upsert token into backend.
-	err = s.UpsertSignupToken(token, *st, st.Expires.Sub(s.clock.Now()))
+	//err = s.UpsertSignupToken(token, *st, st.Expires.Sub(s.clock.Now()))
+	err = s.UpsertUserToken(context.Background(), userToken)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
@@ -346,39 +497,72 @@ func (s *AuthServer) CreateUserWithU2FToken(token string, password string, respo
 // createUserAndSession takes a signup token and creates services.User (either
 // with the passed in roles, or if no role, the default role) and
 // services.WebSession in the backend and returns the new services.WebSession.
-func (a *AuthServer) createUserAndSession(stoken *services.SignupToken) (services.WebSession, error) {
-	// extract user from signup token. if no roles have been passed along, create
-	// user with default role. note: during the conversion from services.UserV1
-	// to services.UserV2 we convert allowed logins to traits.
-	user := stoken.User.V2()
-	if len(user.GetRoles()) == 0 {
-		user.SetRoles([]string{teleport.AdminRoleName})
-	}
+//func (a *AuthServer) createUserAndSession(stoken *services.SignupToken) (services.WebSession, error) {
+func (a *AuthServer) createUserAndSession(token services.UserToken) (services.WebSession, error) {
+	//// extract user from signup token. if no roles have been passed along, create
+	//// user with default role. note: during the conversion from services.UserV1
+	//// to services.UserV2 we convert allowed logins to traits.
+	//user := stoken.User.V2()
+	//if len(user.GetRoles()) == 0 {
+	//	user.SetRoles([]string{teleport.AdminRoleName})
+	//}
 
-	// upsert user into the backend
+	// Create a user from the token and create a user.
+	user, err := services.NewUser(token.GetName())
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	// Why do we do this??
+	if len(user.GetRoles()) == 0 {
+		token.SetRoles([]string{teleport.AdminRoleName})
+	}
+	user.SetRoles(token.GetRoles())
+	user.SetTraits(
+		map[string][]string{
+			teleport.TraitLogins:     token.GetAllowedLogins(),
+			teleport.TraitKubeGroups: token.GetKubeGroups(),
+		})
 	err := a.UpsertUser(user)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	log.Infof("[AUTH] Created user: %v", user)
+	log.Infof("Created user '%v'.", user)
 
 	// remove the token once the user has been created
-	err = a.DeleteSignupToken(stoken.Token)
+	err = a.DeleteUserToken(token.GetToken())
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
 	// create and upsert a new web session into the backend
-	sess, err := a.NewWebSession(user.GetName())
+	webSession, err := a.NewWebSession(user.GetName())
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	err = a.UpsertWebSession(user.GetName(), sess)
+	err = a.UpsertWebSession(user.GetName(), webSession)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
 
-	return sess, nil
+	return webSession, nil
+
+	//// remove the token once the user has been created
+	//err = a.DeleteSignupToken(stoken.Token)
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+
+	//// create and upsert a new web session into the backend
+	//sess, err := a.NewWebSession(user.GetName())
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+	//err = a.UpsertWebSession(user.GetName(), sess)
+	//if err != nil {
+	//	return nil, trace.Wrap(err)
+	//}
+
+	//return sess, nil
 }
 
 func (a *AuthServer) DeleteUser(user string) error {

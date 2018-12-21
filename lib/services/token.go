@@ -29,14 +29,21 @@ import (
 	"github.com/jonboulle/clockwork"
 )
 
+const (
+	CreateToken UserTokenType = "create"
+	ResetToken  UserTokenType = "reset"
+)
+
+type UserTokenType string
+
 type UserToken interface {
 	Resource
 
 	GetToken() string
 	SetToken(string)
 
-	GetRoles() (teleport.Roles, error)
-	SetRoles(teleport.Roles)
+	GetType() UserTokenType
+	SetType(UserTokenType)
 
 	GetUser() string
 	SetUser(string)
@@ -46,6 +53,15 @@ type UserToken interface {
 
 	GetQRCode() []byte
 	SetQRCode([]byte)
+
+	GetRoles() teleport.Roles
+	SetRoles(teleport.Roles)
+
+	GetAllowedLogins() []string
+	SetAllowedLogins([]string)
+
+	GetKubeGroups() []string
+	SetKubeGroups([]string)
 
 	// CheckAndSetDefaults checks and set default values for missing fields.
 	CheckAndSetDefaults() error
@@ -117,12 +133,12 @@ func (c *UserTokenV2) SetToken(token string) {
 	c.Spec.Token = token
 }
 
-func (c *UserTokenV2) GetRoles() (teleport.Roles, error) {
-	return teleport.NewRoles(c.Spec.Roles)
+func (c *UserTokenV2) GetType() UserTokenType {
+	return c.Spec.Type
 }
 
-func (c *UserTokenV2) SetRoles(roles teleport.Roles) {
-	c.Spec.Roles = roles.StringSlice()
+func (c *UserTokenV2) SetType(tokenType UserTokenType) {
+	c.Spec.Type = tokenType
 }
 
 func (c *UserTokenV2) GetUser() string {
@@ -149,6 +165,32 @@ func (c *UserTokenV2) SetQRCode(qrCode []byte) {
 	c.Spec.QRCode = qrCode
 }
 
+func (c *UserTokenV2) GetRoles() teleport.Roles {
+	// Check during unmarshal.
+	roles, _ := teleport.NewRoles(c.Spec.Roles)
+	return roles
+}
+
+func (c *UserTokenV2) SetRoles(roles teleport.Roles) {
+	c.Spec.Roles = roles.StringSlice()
+}
+
+func (c *UserTokenV2) GetAllowedLogins() []string {
+	return c.Spec.AllowedLogins
+}
+
+func (c *UserTokenV2) SetAllowedLogins(allowedLogins []string) {
+	c.Spec.AllowedLogins = allowedLogins
+}
+
+func (c *UserTokenV2) GetKubeGroups() []string {
+	return c.Spec.KubeGroups
+}
+
+func (c *UserTokenV2) SetKubeGroups(kubeGroups []string) {
+	c.Spec.KubeGroups = kubeGroups
+}
+
 // CheckAndSetDefaults checks validity of all parameters and sets defaults.
 func (c *UserTokenV2) CheckAndSetDefaults() error {
 	// Make sure we have defaults for all metadata fields.
@@ -159,6 +201,9 @@ func (c *UserTokenV2) CheckAndSetDefaults() error {
 
 	if c.Spec.Token == "" {
 		return trace.BadParameter("token is required")
+	}
+	if _, err := teleport.NewRoles(c.Spec.Roles); err != nil {
+		return trace.BadParameter("invalid roles: %v", err)
 	}
 
 	return nil

@@ -492,74 +492,6 @@ func (s *IdentityService) UpsertPassword(user string, password []byte) error {
 	return nil
 }
 
-// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
-func (s *IdentityService) UpsertSignupToken(token string, tokenData services.SignupToken, ttl time.Duration) error {
-	if ttl < time.Second || ttl > defaults.MaxSignupTokenTTL {
-		ttl = defaults.MaxSignupTokenTTL
-	}
-	tokenData.Expires = time.Now().UTC().Add(ttl)
-	value, err := json.Marshal(tokenData)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	item := backend.Item{
-		Key:     backend.Key(signupTokenPrefix, token),
-		Value:   value,
-		Expires: tokenData.Expires,
-	}
-	_, err = s.Put(context.TODO(), item)
-	if err != nil {
-		return trace.Wrap(err)
-	}
-	return nil
-
-}
-
-// GetSignupToken returns signup token data
-func (s *IdentityService) GetSignupToken(token string) (*services.SignupToken, error) {
-	if token == "" {
-		return nil, trace.BadParameter("missing token")
-	}
-	item, err := s.Get(context.TODO(), backend.Key(signupTokenPrefix, token))
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	var signupToken services.SignupToken
-	err = json.Unmarshal(item.Value, &signupToken)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	return &signupToken, nil
-}
-
-// GetSignupTokens returns all non-expired user tokens
-func (s *IdentityService) GetSignupTokens() ([]services.SignupToken, error) {
-	startKey := backend.Key(signupTokenPrefix)
-	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
-	if err != nil {
-		return nil, trace.Wrap(err)
-	}
-	tokens := make([]services.SignupToken, len(result.Items))
-	for i, item := range result.Items {
-		var signupToken services.SignupToken
-		err = json.Unmarshal(item.Value, &signupToken)
-		if err != nil {
-			return nil, trace.Wrap(err)
-		}
-		tokens[i] = signupToken
-	}
-	return tokens, nil
-}
-
-// DeleteSignupToken deletes signup token from the storage
-func (s *IdentityService) DeleteSignupToken(token string) error {
-	if token == "" {
-		return trace.BadParameter("missing parameter token")
-	}
-	err := s.Delete(context.TODO(), backend.Key(signupTokenPrefix, token))
-	return trace.Wrap(err)
-}
-
 func (s *IdentityService) UpsertU2FRegisterChallenge(token string, u2fChallenge *u2f.Challenge) error {
 	if token == "" {
 		return trace.BadParameter("missing parmeter token")
@@ -1121,6 +1053,76 @@ func (s *IdentityService) GetGithubAuthRequest(stateToken string) (*services.Git
 		return nil, trace.Wrap(err)
 	}
 	return &req, nil
+}
+
+//// UpsertSignupToken upserts signup token - one time token that lets user to create a user account
+//func (s *IdentityService) UpsertSignupToken(token string, tokenData services.SignupToken, ttl time.Duration) error {
+//	if ttl < time.Second || ttl > defaults.MaxSignupTokenTTL {
+//		ttl = defaults.MaxSignupTokenTTL
+//	}
+//	tokenData.Expires = time.Now().UTC().Add(ttl)
+//	value, err := json.Marshal(tokenData)
+//	if err != nil {
+//		return trace.Wrap(err)
+//	}
+//	item := backend.Item{
+//		Key:     backend.Key(signupTokenPrefix, token),
+//		Value:   value,
+//		Expires: tokenData.Expires,
+//	}
+//	_, err = s.Put(context.TODO(), item)
+//	if err != nil {
+//		return trace.Wrap(err)
+//	}
+//	return nil
+//
+//}
+//
+//// GetSignupToken returns signup token data
+//func (s *IdentityService) GetSignupToken(token string) (*services.SignupToken, error) {
+//	if token == "" {
+//		return nil, trace.BadParameter("missing token")
+//	}
+//	item, err := s.Get(context.TODO(), backend.Key(signupTokenPrefix, token))
+//	if err != nil {
+//		return nil, trace.Wrap(err)
+//	}
+//	var signupToken services.SignupToken
+//	err = json.Unmarshal(item.Value, &signupToken)
+//	if err != nil {
+//		return nil, trace.Wrap(err)
+//	}
+//	return &signupToken, nil
+//}
+
+// TODO: Legacy, delete. Only used during migration.
+// GetSignupTokens returns all non-expired user tokens
+func (s *IdentityService) GetLegacySignupTokens() ([]services.SignupToken, error) {
+	startKey := backend.Key(signupTokenPrefix)
+	result, err := s.GetRange(context.TODO(), startKey, backend.RangeEnd(startKey), backend.NoLimit)
+	if err != nil {
+		return nil, trace.Wrap(err)
+	}
+	tokens := make([]services.SignupToken, len(result.Items))
+	for i, item := range result.Items {
+		var signupToken services.SignupToken
+		err = json.Unmarshal(item.Value, &signupToken)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+		tokens[i] = signupToken
+	}
+	return tokens, nil
+}
+
+// TODO: Legacy, delete. Only used during migration.
+// DeleteSignupToken deletes signup token from the storage
+func (s *IdentityService) DeleteLegacySignupToken(token string) error {
+	if token == "" {
+		return trace.BadParameter("missing parameter token")
+	}
+	err := s.Delete(context.TODO(), backend.Key(signupTokenPrefix, token))
+	return trace.Wrap(err)
 }
 
 func (s *IdentityService) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {

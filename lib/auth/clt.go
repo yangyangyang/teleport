@@ -1386,67 +1386,67 @@ func (c *Client) GenerateHostCert(
 	return []byte(cert), nil
 }
 
-// CreateSignupToken creates one time token for creating account for the user
-// For each token it creates username and otp generator
-func (c *Client) CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error) {
-	if err := user.Check(); err != nil {
-		return "", trace.Wrap(err)
-	}
-	out, err := c.PostJSON(c.Endpoint("signuptokens"), createSignupTokenReq{
-		User: user,
-		TTL:  ttl,
-	})
-	if err != nil {
-		return "", trace.Wrap(err)
-	}
-	var token string
-	if err := json.Unmarshal(out.Bytes(), &token); err != nil {
-		return "", trace.Wrap(err)
-	}
-	return token, nil
-}
+//// CreateSignupToken creates one time token for creating account for the user
+//// For each token it creates username and otp generator
+//func (c *Client) CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error) {
+//	if err := user.Check(); err != nil {
+//		return "", trace.Wrap(err)
+//	}
+//	out, err := c.PostJSON(c.Endpoint("signuptokens"), createSignupTokenReq{
+//		User: user,
+//		TTL:  ttl,
+//	})
+//	if err != nil {
+//		return "", trace.Wrap(err)
+//	}
+//	var token string
+//	if err := json.Unmarshal(out.Bytes(), &token); err != nil {
+//		return "", trace.Wrap(err)
+//	}
+//	return token, nil
+//}
+//
+//// GetSignupTokens returns all the user signup tokens in the cluster.
+//func (c *Client) GetSignupTokens() ([]services.SignupToken, error) {
+//	return nil, nil
+//	//clt, err := c.grpc()
+//	//if err != nil {
+//	//	return nil, trace.Wrap(err)
+//	//}
+//
+//	//response, err := clt.GetSignupTokens(context.TODO(), &empty.Empty{})
+//	//if err != nil {
+//	//	return nil, trail.FromGRPC(err)
+//	//}
+//
+//	//return response.Tokens, nil
+//
+//	//out, err := c.Get(c.Endpoint("signuptokens"), url.Values{})
+//	//if err != nil {
+//	//	return nil, trace.Wrap(err)
+//	//}
+//
+//	//var tokens []services.SignupToken
+//	//if err := json.Unmarshal(out.Bytes(), &tokens); err != nil {
+//	//	return nil, trace.Wrap(err)
+//	//}
+//	//return tokens, nil
+//}
 
-// GetSignupTokens returns all the user signup tokens in the cluster.
-func (c *Client) GetSignupTokens() ([]services.SignupToken, error) {
-	return nil, nil
-	//clt, err := c.grpc()
-	//if err != nil {
-	//	return nil, trace.Wrap(err)
-	//}
-
-	//response, err := clt.GetSignupTokens(context.TODO(), &empty.Empty{})
-	//if err != nil {
-	//	return nil, trail.FromGRPC(err)
-	//}
-
-	//return response.Tokens, nil
-
-	//out, err := c.Get(c.Endpoint("signuptokens"), url.Values{})
-	//if err != nil {
-	//	return nil, trace.Wrap(err)
-	//}
-
-	//var tokens []services.SignupToken
-	//if err := json.Unmarshal(out.Bytes(), &tokens); err != nil {
-	//	return nil, trace.Wrap(err)
-	//}
-	//return tokens, nil
-}
-
-// GetSignupTokenData returns token data for a valid token
-func (c *Client) GetSignupTokenData(token string) (user string, otpQRCode []byte, e error) {
-	out, err := c.Get(c.Endpoint("signuptokens", token), url.Values{})
-	if err != nil {
-		return "", nil, err
-	}
-
-	var tokenData getSignupTokenDataResponse
-	if err := json.Unmarshal(out.Bytes(), &tokenData); err != nil {
-		return "", nil, err
-	}
-
-	return tokenData.User, tokenData.QRImg, nil
-}
+//// GetSignupTokenData returns token data for a valid token
+//func (c *Client) GetSignupTokenData(token string) (user string, otpQRCode []byte, e error) {
+//	out, err := c.Get(c.Endpoint("signuptokens", token), url.Values{})
+//	if err != nil {
+//		return "", nil, err
+//	}
+//
+//	var tokenData getSignupTokenDataResponse
+//	if err := json.Unmarshal(out.Bytes(), &tokenData); err != nil {
+//		return "", nil, err
+//	}
+//
+//	return tokenData.User, tokenData.QRImg, nil
+//}
 
 // GenerateUserCert takes the public key in the OpenSSH `authorized_keys` plain
 // text format, signs it using User Certificate Authority signing key and
@@ -2368,24 +2368,24 @@ func (c *Client) DeleteTrustedCluster(name string) error {
 	return trace.Wrap(err)
 }
 
-func (c *Client) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {
-	userTokenV2, ok := userToken.(*services.UserTokenV2)
-	if !ok {
-		return trace.BadParameter("UserTokenV2 required")
-	}
-
-	clt, err := c.grpc()
-	if err != nil {
-		return trace.Wrap(err)
-	}
-
-	_, err = clt.UpsertUserToken(ctx, userTokenV2)
-	if err != nil {
-		return trail.FromGRPC(err)
-	}
-
-	return nil
-}
+//func (c *Client) UpsertUserToken(ctx context.Context, userToken services.UserToken) error {
+//	userTokenV2, ok := userToken.(*services.UserTokenV2)
+//	if !ok {
+//		return trace.BadParameter("UserTokenV2 required")
+//	}
+//
+//	clt, err := c.grpc()
+//	if err != nil {
+//		return trace.Wrap(err)
+//	}
+//
+//	_, err = clt.UpsertUserToken(ctx, userTokenV2)
+//	if err != nil {
+//		return trail.FromGRPC(err)
+//	}
+//
+//	return nil
+//}
 
 func (c *Client) GetUserToken(ctx context.Context, token string) (services.UserToken, error) {
 	clt, err := c.grpc()
@@ -2579,17 +2579,20 @@ type IdentityService interface {
 	// resulting certificate.
 	GenerateUserCert(key []byte, user string, ttl time.Duration, compatibility string) ([]byte, error)
 
-	// GetSignupTokenData returns token data for a valid token
-	GetSignupTokenData(token string) (user string, otpQRCode []byte, e error)
+	//// GetSignupTokenData returns token data for a valid token
+	//GetSignupTokenData(token string) (user string, otpQRCode []byte, e error)
 
-	// GetSignupTokens returns all the user signup tokens in the cluster.
-	GetSignupTokens() ([]services.SignupToken, error)
+	//// GetSignupTokens returns all the user signup tokens in the cluster.
+	//GetSignupTokens() ([]services.SignupToken, error)
 
-	// CreateSignupToken creates one time token for creating account for the user
-	// For each token it creates username and OTP key
-	CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error)
+	//// CreateSignupToken creates one time token for creating account for the user
+	//// For each token it creates username and OTP key
+	//CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error)
 
-	UpsertUserToken(context.Context, services.UserToken) error
+	//UpsertUserToken(context.Context, services.UserToken) error
+
+	CreateUserToken(context.Context, *proto.CreateUserTokenRequest) (services.UserToken, error)
+	CreateOrResetUser(context.Context, *proto.CreateOrResetUserRequest) (services.WebSession, error)
 	GetUserToken(context.Context, string) (services.UserToken, error)
 	GetUserTokens(context.Context) ([]services.UserToken, error)
 	DeleteUserToken(context.Context, string) error
