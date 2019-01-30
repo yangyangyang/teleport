@@ -267,7 +267,8 @@ func (s *ServicesTestSuite) CertAuthCRUD(c *check.C) {
 	fixtures.DeepCompare(c, &newCA, out)
 }
 
-func newServer(kind, name, addr, namespace string) *services.ServerV2 {
+// NewServer creates a new server resource
+func NewServer(kind, name, addr, namespace string) *services.ServerV2 {
 	return &services.ServerV2{
 		Kind:    kind,
 		Version: services.V2,
@@ -287,7 +288,7 @@ func (s *ServicesTestSuite) ServerCRUD(c *check.C) {
 	c.Assert(err, check.IsNil)
 	c.Assert(len(out), check.Equals, 0)
 
-	srv := newServer(services.KindNode, "srv1", "127.0.0.1:2022", defaults.Namespace)
+	srv := NewServer(services.KindNode, "srv1", "127.0.0.1:2022", defaults.Namespace)
 	_, err = s.PresenceS.UpsertNode(srv)
 	c.Assert(err, check.IsNil)
 
@@ -308,7 +309,7 @@ func (s *ServicesTestSuite) ServerCRUD(c *check.C) {
 	c.Assert(err, check.IsNil)
 	c.Assert(len(out), check.Equals, 0)
 
-	proxy := newServer(services.KindProxy, "proxy1", "127.0.0.1:2023", defaults.Namespace)
+	proxy := NewServer(services.KindProxy, "proxy1", "127.0.0.1:2023", defaults.Namespace)
 	c.Assert(s.PresenceS.UpsertProxy(proxy), check.IsNil)
 
 	out, err = s.PresenceS.GetProxies()
@@ -327,7 +328,7 @@ func (s *ServicesTestSuite) ServerCRUD(c *check.C) {
 	c.Assert(err, check.IsNil)
 	c.Assert(len(out), check.Equals, 0)
 
-	auth := newServer(services.KindAuthServer, "auth1", "127.0.0.1:2025", defaults.Namespace)
+	auth := NewServer(services.KindAuthServer, "auth1", "127.0.0.1:2025", defaults.Namespace)
 	c.Assert(s.PresenceS.UpsertAuthServer(auth), check.IsNil)
 
 	out, err = s.PresenceS.GetAuthServers()
@@ -1161,7 +1162,7 @@ func (s *ServicesTestSuite) Events(c *check.C) {
 				Kind: services.KindNode,
 			},
 			crud: func() services.Resource {
-				srv := newServer(services.KindNode, "srv1", "127.0.0.1:2022", defaults.Namespace)
+				srv := NewServer(services.KindNode, "srv1", "127.0.0.1:2022", defaults.Namespace)
 
 				_, err := s.PresenceS.UpsertNode(srv)
 				c.Assert(err, check.IsNil)
@@ -1181,7 +1182,7 @@ func (s *ServicesTestSuite) Events(c *check.C) {
 				Kind: services.KindProxy,
 			},
 			crud: func() services.Resource {
-				srv := newServer(services.KindProxy, "srv1", "127.0.0.1:2022", defaults.Namespace)
+				srv := NewServer(services.KindProxy, "srv1", "127.0.0.1:2022", defaults.Namespace)
 
 				err := s.PresenceS.UpsertProxy(srv)
 				c.Assert(err, check.IsNil)

@@ -25,6 +25,7 @@ import (
 	"github.com/gravitational/teleport"
 	"github.com/gravitational/teleport/lib/backend"
 	"github.com/gravitational/teleport/lib/backend/lite"
+	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/fixtures"
 	"github.com/gravitational/teleport/lib/services"
 	"github.com/gravitational/teleport/lib/services/local"
@@ -65,6 +66,10 @@ type testPack struct {
 	trustS         services.Trust
 	provisionerS   services.Provisioner
 	clusterConfigS services.ClusterConfiguration
+
+	usersS    services.UsersService
+	accessS   services.Access
+	presenceS services.Presence
 }
 
 func (t *testPack) Close() {
@@ -80,9 +85,16 @@ func (t *testPack) Close() {
 	}
 }
 
-// newPack returns a new test pack or fails the test on error
 func (s *CacheSuite) newPackForAuth(c *check.C) *testPack {
 	return s.newPack(c, ForAuth)
+}
+
+func (s *CacheSuite) newPackForProxy(c *check.C) *testPack {
+	return s.newPack(c, ForProxy)
+}
+
+func (s *CacheSuite) newPackForNode(c *check.C) *testPack {
+	return s.newPack(c, ForNode)
 }
 
 // newPack returns a new test pack or fails the test on error
@@ -109,6 +121,9 @@ func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *tes
 	p.clusterConfigS = local.NewClusterConfigurationService(p.backend)
 	p.provisionerS = local.NewProvisioningService(p.backend)
 	p.eventsS = &proxyEvents{events: local.NewEventsService(p.backend)}
+	p.presenceS = local.NewPresenceService(p.backend)
+	p.usersS = local.NewIdentityService(p.backend)
+	p.accessS = local.NewAccessService(p.backend)
 	p.cache, err = New(setupConfig(Config{
 		Context:       ctx,
 		Backend:       p.cacheBackend,
@@ -116,6 +131,9 @@ func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *tes
 		ClusterConfig: p.clusterConfigS,
 		Provisioner:   p.provisionerS,
 		Trust:         p.trustS,
+		Users:         p.usersS,
+		Access:        p.accessS,
+		Presence:      p.presenceS,
 		RetryPeriod:   200 * time.Millisecond,
 		EventsC:       p.eventsC,
 	}))
@@ -321,28 +339,151 @@ func (s *CacheSuite) TestClusterConfig(c *check.C) {
 		c.Fatalf("timeout waiting for event")
 	}
 
+	outName, err := p.cache.GetClusterName()
 	c.Assert(err, check.IsNil)
-	clusterName.SetResourceID(out.GetResourceID())
-	fixtures.DeepCompare(c, clusterName, clusterName)
+
+	clusterName.SetResourceID(outName.GetResourceID())
+	fixtures.DeepCompare(c, outName, clusterName)
 }
 
-// TestUsersAndRoles tests users and roles
-func (s *CacheSuite) TestUsersAndRoles(c *check.C) {
-	p := s.newPackForAuth(c)
+// TestNamespaces tests caching of namespaces
+func (s *CacheSuite) TestNamespaces(c *check.C) {
+	p := s.newPackForProxy(c)
 	defer p.Close()
 
-	// update cluster config to record at the proxy
-	clusterConfig, err := services.NewClusterConfig(services.ClusterConfigSpecV3{
-		SessionRecording: services.RecordAtProxy,
-		Audit: services.AuditConfig{
-			AuditEventsURI: []string{"dynamodb://audit_table_name", "file:///home/log"},
+	v := services.NewNamespace("universe")
+	ns := &v
+	err := p.presenceS.UpsertNamespace(*ns)
+	c.Assert(err, check.IsNil)
+
+	ns, err = p.presenceS.GetNamespace(ns.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err := p.cache.GetNamespace(ns.GetName())
+	c.Assert(err, check.IsNil)
+	ns.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, ns, out)
+
+	// update namespace metadata
+	ns.Metadata.Labels = map[string]string{"a": "b"}
+	c.Assert(err, check.IsNil)
+	err = p.presenceS.UpsertNamespace(*ns)
+	c.Assert(err, check.IsNil)
+
+	ns, err = p.presenceS.GetNamespace(ns.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetNamespace(ns.GetName())
+	c.Assert(err, check.IsNil)
+	ns.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, ns, out)
+
+	err = p.presenceS.DeleteNamespace(ns.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	_, err = p.cache.GetNamespace(ns.GetName())
+	fixtures.ExpectNotFound(c, err)
+}
+
+// TestUsers tests caching of users
+func (s *CacheSuite) TestUsers(c *check.C) {
+	p := s.newPackForProxy(c)
+	defer p.Close()
+
+	user, err := services.NewUser("bob")
+	c.Assert(err, check.IsNil)
+	err = p.usersS.UpsertUser(user)
+	c.Assert(err, check.IsNil)
+
+	user, err = p.usersS.GetUser(user.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err := p.cache.GetUser(user.GetName())
+	c.Assert(err, check.IsNil)
+	user.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, user, out)
+
+	// update user's roles
+	user.SetRoles([]string{"admin"})
+	c.Assert(err, check.IsNil)
+	err = p.usersS.UpsertUser(user)
+	c.Assert(err, check.IsNil)
+
+	user, err = p.usersS.GetUser(user.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetUser(user.GetName())
+	c.Assert(err, check.IsNil)
+	user.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, user, out)
+
+	err = p.usersS.DeleteUser(user.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	_, err = p.cache.GetUser(user.GetName())
+	fixtures.ExpectNotFound(c, err)
+}
+
+// TestRoles tests caching of roles
+func (s *CacheSuite) TestRoles(c *check.C) {
+	p := s.newPackForNode(c)
+	defer p.Close()
+
+	role, err := services.NewRole("role1", services.RoleSpecV3{
+		Options: services.RoleOptions{
+			MaxSessionTTL: services.Duration(time.Hour),
 		},
+		Allow: services.RoleConditions{
+			Logins:     []string{"root", "bob"},
+			NodeLabels: services.Labels{services.Wildcard: []string{services.Wildcard}},
+		},
+		Deny: services.RoleConditions{},
 	})
 	c.Assert(err, check.IsNil)
-	err = p.clusterConfigS.SetClusterConfig(clusterConfig)
+	err = p.accessS.UpsertRole(role)
 	c.Assert(err, check.IsNil)
 
-	clusterConfig, err = p.clusterConfigS.GetClusterConfig()
+	role, err = p.accessS.GetRole(role.GetName())
 	c.Assert(err, check.IsNil)
 
 	select {
@@ -352,20 +493,18 @@ func (s *CacheSuite) TestUsersAndRoles(c *check.C) {
 		c.Fatalf("timeout waiting for event")
 	}
 
-	out, err := p.cache.GetClusterConfig()
+	out, err := p.cache.GetRole(role.GetName())
 	c.Assert(err, check.IsNil)
-	clusterConfig.SetResourceID(out.GetResourceID())
-	fixtures.DeepCompare(c, clusterConfig, out)
+	role.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, role, out)
 
-	// update cluster name resource metadata
-	clusterName, err := services.NewClusterName(services.ClusterNameSpecV2{
-		ClusterName: "example.com",
-	})
+	// update role
+	role.SetLogins(services.Allow, []string{"admin"})
 	c.Assert(err, check.IsNil)
-	err = p.clusterConfigS.SetClusterName(clusterName)
+	err = p.accessS.UpsertRole(role)
 	c.Assert(err, check.IsNil)
 
-	clusterName, err = p.clusterConfigS.GetClusterName()
+	role, err = p.accessS.GetRole(role.GetName())
 	c.Assert(err, check.IsNil)
 
 	select {
@@ -375,9 +514,295 @@ func (s *CacheSuite) TestUsersAndRoles(c *check.C) {
 		c.Fatalf("timeout waiting for event")
 	}
 
+	out, err = p.cache.GetRole(role.GetName())
 	c.Assert(err, check.IsNil)
-	clusterName.SetResourceID(out.GetResourceID())
-	fixtures.DeepCompare(c, clusterName, clusterName)
+	role.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, role, out)
+
+	err = p.accessS.DeleteRole(role.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	_, err = p.cache.GetRole(role.GetName())
+	fixtures.ExpectNotFound(c, err)
+}
+
+// TestReverseTunnels tests reverse tunnels caching
+func (s *CacheSuite) TestReverseTunnels(c *check.C) {
+	p := s.newPackForProxy(c)
+	defer p.Close()
+
+	tunnel := services.NewReverseTunnel("example.com", []string{"example.com:2023"})
+	c.Assert(p.presenceS.UpsertReverseTunnel(tunnel), check.IsNil)
+
+	var err error
+	tunnel, err = p.presenceS.GetReverseTunnel(tunnel.GetName())
+	c.Assert(err, check.IsNil)
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err := p.cache.GetReverseTunnels()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	tunnel.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, tunnel, out[0])
+
+	// update tunnel's parameters
+	tunnel.SetClusterName("new.example.com")
+	c.Assert(err, check.IsNil)
+	err = p.presenceS.UpsertReverseTunnel(tunnel)
+	c.Assert(err, check.IsNil)
+
+	out, err = p.presenceS.GetReverseTunnels()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	tunnel = out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetReverseTunnels()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	tunnel.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, tunnel, out[0])
+
+	err = p.presenceS.DeleteAllReverseTunnels()
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetReverseTunnels()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 0)
+}
+
+// TestTunnelConnections tests tunnel connections caching
+func (s *CacheSuite) TestTunnelConnections(c *check.C) {
+	p := s.newPackForProxy(c)
+	defer p.Close()
+
+	clusterName := "example.com"
+	dt := time.Date(2015, 6, 5, 4, 3, 2, 1, time.UTC).UTC()
+	conn, err := services.NewTunnelConnection("conn1", services.TunnelConnectionSpecV2{
+		ClusterName:   clusterName,
+		ProxyName:     "p1",
+		LastHeartbeat: dt,
+	})
+	c.Assert(err, check.IsNil)
+	c.Assert(p.presenceS.UpsertTunnelConnection(conn), check.IsNil)
+
+	out, err := p.presenceS.GetTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	conn = out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	conn.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, conn, out[0])
+
+	// update conn's parameters
+	dt = time.Date(2015, 6, 5, 5, 3, 2, 1, time.UTC).UTC()
+	conn.SetLastHeartbeat(dt)
+
+	err = p.presenceS.UpsertTunnelConnection(conn)
+	c.Assert(err, check.IsNil)
+
+	out, err = p.presenceS.GetTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	conn = out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	conn.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, conn, out[0])
+
+	err = p.presenceS.DeleteTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetTunnelConnections(clusterName)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 0)
+}
+
+// TestNodes tests nodes cache
+func (s *CacheSuite) TestNodes(c *check.C) {
+	p := s.newPackForProxy(c)
+	defer p.Close()
+
+	server := suite.NewServer(services.KindNode, "srv1", "127.0.0.1:2022", defaults.Namespace)
+	_, err := p.presenceS.UpsertNode(server)
+	c.Assert(err, check.IsNil)
+
+	out, err := p.presenceS.GetNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	srv := out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	srv.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, srv, out[0])
+
+	// update srv parameters
+	srv.SetAddr("127.0.0.2:2033")
+
+	_, err = p.presenceS.UpsertNode(srv)
+	c.Assert(err, check.IsNil)
+
+	out, err = p.presenceS.GetNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	srv = out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	srv.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, srv, out[0])
+
+	err = p.presenceS.DeleteAllNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetNodes(defaults.Namespace)
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 0)
+}
+
+// TestProxies tests proxies cache
+func (s *CacheSuite) TestProxies(c *check.C) {
+	p := s.newPackForProxy(c)
+	defer p.Close()
+
+	server := suite.NewServer(services.KindProxy, "srv1", "127.0.0.1:2022", defaults.Namespace)
+	err := p.presenceS.UpsertProxy(server)
+	c.Assert(err, check.IsNil)
+
+	out, err := p.presenceS.GetProxies()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	srv := out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetProxies()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	srv.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, srv, out[0])
+
+	// update srv parameters
+	srv.SetAddr("127.0.0.2:2033")
+
+	err = p.presenceS.UpsertProxy(srv)
+	c.Assert(err, check.IsNil)
+
+	out, err = p.presenceS.GetProxies()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+	srv = out[0]
+
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetProxies()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 1)
+
+	srv.SetResourceID(out[0].GetResourceID())
+	fixtures.DeepCompare(c, srv, out[0])
+
+	err = p.presenceS.DeleteAllProxies()
+	c.Assert(err, check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err = p.cache.GetProxies()
+	c.Assert(err, check.IsNil)
+	c.Assert(out, check.HasLen, 0)
 }
 
 type proxyEvents struct {
