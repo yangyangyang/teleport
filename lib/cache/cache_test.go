@@ -56,7 +56,7 @@ func (s *CacheSuite) SetUpSuite(c *check.C) {
 // services used for test run
 type testPack struct {
 	dataDir      string
-	backend      backend.Backend
+	backend      *backend.Wrapper
 	clock        clockwork.Clock
 	eventsC      chan CacheEvent
 	cache        *Cache
@@ -103,12 +103,12 @@ func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *tes
 		dataDir: c.MkDir(),
 		clock:   s.clock,
 	}
-	var err error
-	p.backend, err = lite.NewWithConfig(context.TODO(), lite.Config{
+	bk, err := lite.NewWithConfig(context.TODO(), lite.Config{
 		Path:             p.dataDir,
 		PollStreamPeriod: 200 * time.Millisecond,
 	})
 	c.Assert(err, check.IsNil)
+	p.backend = backend.NewWrapper(bk)
 
 	cacheDir := c.MkDir()
 	p.cacheBackend, err = lite.NewWithConfig(context.TODO(), lite.Config{Path: cacheDir, EventsOff: true})

@@ -18,7 +18,6 @@ package cache
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/gravitational/teleport"
@@ -28,6 +27,7 @@ import (
 	"github.com/gravitational/teleport/lib/services/local"
 
 	"github.com/gravitational/trace"
+	"github.com/jonboulle/clockwork"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,21 +78,30 @@ func ForNode(cfg Config) Config {
 //
 // This which can be used if the upstream AccessPoint goes offline
 type Cache struct {
-	sync.RWMutex
 	Config
+	// Entry is a logging entry
 	*log.Entry
-	ctx                context.Context
-	cancel             context.CancelFunc
+	// wrapper is a wrapper around cache backend that
+	// allows to set backend into failure mode,
+	// intercepting all calls and returning errors instead
+	wrapper *backend.Wrapper
+	// ctx is a cache exit context
+	ctx context.Context
+	// cancel triggers exit context closure
+	cancel context.CancelFunc
+
+	// collections is a map of registered collections by resource Kind
+	collections map[string]collection
+
 	trustCache         services.Trust
 	clusterConfigCache services.ClusterConfiguration
 	provisionerCache   services.Provisioner
 	usersCache         services.UsersService
 	accessCache        services.Access
 	presenceCache      services.Presence
-	collections        map[string]collection
 }
 
-// Config is Cache config
+// Config defines cache configuration parameters
 type Config struct {
 	// Context is context for parent operations
 	Context context.Context
@@ -123,18 +132,67 @@ type Config struct {
 	// EventsC is a channel for event notifications,
 	// used in tests
 	EventsC chan CacheEvent
+	// OnlyRecent configures cache behavior that always uses
+	// recent values, see OnlyRecent for details
+	OnlyRecent OnlyRecent
+	// PreferRecent configures cache behavior that prefer recent values
+	// when available, but falls back to stale data, see PreferRecent
+	// for details
+	PreferRecent PreferRecent
+	// Clock can be set to control time,
+	// uses runtime clock by default
+	Clock clockwork.Clock
+}
+
+// OnlyRecent defines cache behavior always
+// using recent data and failing otherwise.
+// Used by auth servers and other systems
+// having direct access to the backend.
+type OnlyRecent struct {
+	// Enabled enables cache behavior
+	Enabled bool
+}
+
+// PreferRecent defined cache behavior
+// that always prefers recent data, but will
+// serve stale data in case if disconnect is detected
+type PreferRecent struct {
+	// Enabled enables cache behavior
+	Enabled bool
+	// MaxTTL sets maximum TTL the cache keeps the value
+	// in case if there is no connection to auth servers
+	MaxTTL time.Duration
+	// NeverExpires if set, never expires stale cache values
+	NeverExpires bool
+}
+
+// CheckAndSetDefaults checks parameters and sets default values
+func (p *PreferRecent) CheckAndSetDefaults() error {
+	if p.MaxTTL == 0 {
+		p.MaxTTL = defaults.CacheTTL
+	}
+	return nil
 }
 
 // CheckAndSetDefaults checks parameters and sets default values
 func (c *Config) CheckAndSetDefaults() error {
-	if c.Context == nil {
-		c.Context = context.Background()
-	}
 	if c.Events == nil {
 		return trace.BadParameter("missing Events parameter")
 	}
 	if c.Backend == nil {
 		return trace.BadParameter("missing Backend parameter")
+	}
+	if c.OnlyRecent.Enabled && c.PreferRecent.Enabled {
+		return trace.BadParameter("either one of OnlyRecent or PreferRecent should be enabled at a time")
+	}
+	if !c.OnlyRecent.Enabled && !c.PreferRecent.Enabled {
+		c.OnlyRecent.Enabled = true
+	}
+	if c.Context == nil {
+		c.Context = context.Background()
+	}
+	if c.Clock == nil {
+		c.Clock = clockwork.NewRealClock()
 	}
 	if c.RetryPeriod == 0 {
 		c.RetryPeriod = defaults.HighResPollingPeriod
@@ -166,17 +224,19 @@ func New(config Config) (*Cache, error) {
 	if err := config.CheckAndSetDefaults(); err != nil {
 		return nil, trace.Wrap(err)
 	}
+	wrapper := backend.NewWrapper(config.Backend)
 	ctx, cancel := context.WithCancel(config.Context)
 	cs := &Cache{
+		wrapper:            wrapper,
 		ctx:                ctx,
 		cancel:             cancel,
 		Config:             config,
-		trustCache:         local.NewCAService(config.Backend),
-		clusterConfigCache: local.NewClusterConfigurationService(config.Backend),
-		provisionerCache:   local.NewProvisioningService(config.Backend),
-		usersCache:         local.NewIdentityService(config.Backend),
-		accessCache:        local.NewAccessService(config.Backend),
-		presenceCache:      local.NewPresenceService(config.Backend),
+		trustCache:         local.NewCAService(wrapper),
+		clusterConfigCache: local.NewClusterConfigurationService(wrapper),
+		provisionerCache:   local.NewProvisioningService(wrapper),
+		usersCache:         local.NewIdentityService(wrapper),
+		accessCache:        local.NewAccessService(wrapper),
+		presenceCache:      local.NewPresenceService(wrapper),
 		Entry: log.WithFields(log.Fields{
 			trace.Component: teleport.ComponentCachingClient,
 		}),
@@ -186,18 +246,28 @@ func New(config Config) (*Cache, error) {
 		return nil, trace.Wrap(err)
 	}
 	cs.collections = collections
+
 	err = cs.fetch()
 	if err != nil {
-		return nil, trace.Wrap(err)
+		// "only recent" behavior does not tolerate
+		// stale data, so it has to initialize itself
+		// with recent data on startup or fail
+		if cs.OnlyRecent.Enabled {
+			return nil, trace.Wrap(err)
+		}
 	}
 	go cs.update()
 	return cs, nil
 }
 
 func (c *Cache) update() {
+	// Retry period is for retries on connection errors
 	t := time.NewTicker(c.RetryPeriod)
 	defer t.Stop()
 
+	// Reload period is here to protect against
+	// unknown cache going out of sync problems
+	// that we did not predict.
 	r := time.NewTicker(c.ReloadPeriod)
 	defer r.Stop()
 	for {
@@ -209,9 +279,26 @@ func (c *Cache) update() {
 		}
 		err := c.fetchAndWatch()
 		if err != nil {
-			c.Warningf("Going to re-init the cache because of the error: %v.", err)
+			c.Warningf("Re-init the cache on error: %v.", err)
 		}
 	}
+}
+
+// setTTL overrides TTL supplied by the resource
+// based on the cache behavior:
+// - for "only recent", does nothing
+// - for "prefer recent", honors TTL set on the resource, otherwise
+//   sets TTL to max TTL
+func (c *Cache) setTTL(r services.Resource) {
+	if c.OnlyRecent.Enabled || (c.PreferRecent.Enabled && c.PreferRecent.NeverExpires) {
+		return
+	}
+	// honor expiry set in the resource
+	if !r.Expiry().IsZero() {
+		return
+	}
+	// set max TTL on the resources
+	r.SetTTL(c.Clock, c.PreferRecent.MaxTTL)
 }
 
 func (c *Cache) notify(event CacheEvent) {
@@ -296,8 +383,16 @@ func (c *Cache) fetchAndWatch() error {
 	}
 	err = c.fetch()
 	if err != nil {
+		// for "only recent" cache behavior refuse to serve stale data
+		if c.OnlyRecent.Enabled {
+			if err := c.eraseAll(); err != nil {
+				c.Warningf("Failed to erase the data: %v", err)
+			}
+			c.wrapper.SetReadError(trace.ConnectionProblem(err, "cache is unavailable"))
+		}
 		return trace.Wrap(err)
 	}
+	c.wrapper.SetReadError(nil)
 	c.notify(CacheEvent{Type: WatcherStarted})
 	for {
 		select {
@@ -316,6 +411,15 @@ func (c *Cache) fetchAndWatch() error {
 			c.notify(CacheEvent{Event: event, Type: EventProcessed})
 		}
 	}
+}
+
+// eraseAll erases all the data from cache collections
+func (c *Cache) eraseAll() error {
+	var errors []error
+	for _, collection := range c.collections {
+		errors = append(errors, collection.erase())
+	}
+	return trace.NewAggregate(errors...)
 }
 
 func (c *Cache) watchKinds() []services.WatchKind {
