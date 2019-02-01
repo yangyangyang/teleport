@@ -97,8 +97,8 @@ func (s *CacheSuite) newPackForNode(c *check.C) *testPack {
 	return s.newPack(c, ForNode)
 }
 
-// newPack returns a new test pack or fails the test on error
-func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *testPack {
+// newPackWithoutCache returns a new test pack without creating cache
+func (s *CacheSuite) newPackWithoutCache(c *check.C, setupConfig func(c Config) Config) *testPack {
 	p := &testPack{
 		dataDir: c.MkDir(),
 		clock:   s.clock,
@@ -115,7 +115,6 @@ func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *tes
 	c.Assert(err, check.IsNil)
 
 	p.eventsC = make(chan CacheEvent, 100)
-	ctx := context.TODO()
 
 	p.trustS = local.NewCAService(p.backend)
 	p.clusterConfigS = local.NewClusterConfigurationService(p.backend)
@@ -124,8 +123,15 @@ func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *tes
 	p.presenceS = local.NewPresenceService(p.backend)
 	p.usersS = local.NewIdentityService(p.backend)
 	p.accessS = local.NewAccessService(p.backend)
+	return p
+}
+
+// newPack returns a new test pack or fails the test on error
+func (s *CacheSuite) newPack(c *check.C, setupConfig func(c Config) Config) *testPack {
+	p := s.newPackWithoutCache(c, setupConfig)
+	var err error
 	p.cache, err = New(setupConfig(Config{
-		Context:       ctx,
+		Context:       context.TODO(),
 		Backend:       p.cacheBackend,
 		Events:        p.eventsS,
 		ClusterConfig: p.clusterConfigS,
@@ -180,6 +186,177 @@ func (s *CacheSuite) TestCA(c *check.C) {
 	fixtures.ExpectNotFound(c, err)
 }
 
+// TestOnlyRecentInit makes sure init fails
+// with "only recent" cache strategy
+func (s *CacheSuite) TestOnlyRecentInit(c *check.C) {
+	p := s.newPackWithoutCache(c, ForAuth)
+	defer p.Close()
+
+	p.backend.SetReadError(trace.ConnectionProblem(nil, "backend is out"))
+	_, err := New(ForAuth(Config{
+		Context:       context.TODO(),
+		Backend:       p.cacheBackend,
+		Events:        p.eventsS,
+		ClusterConfig: p.clusterConfigS,
+		Provisioner:   p.provisionerS,
+		Trust:         p.trustS,
+		Users:         p.usersS,
+		Access:        p.accessS,
+		Presence:      p.presenceS,
+		RetryPeriod:   200 * time.Millisecond,
+		EventsC:       p.eventsC,
+	}))
+	fixtures.ExpectConnectionProblem(c, err)
+}
+
+// TestOnlyRecentDisconnect tests that cache
+// with "only recent" cache strategy will not serve
+// stale data during disconnects
+func (s *CacheSuite) TestOnlyRecentDisconnect(c *check.C) {
+	p := s.newPackForAuth(c)
+	defer p.Close()
+
+	ca := suite.NewTestCA(services.UserCA, "example.com")
+	c.Assert(p.trustS.UpsertCertAuthority(ca), check.IsNil)
+
+	select {
+	case <-p.eventsC:
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	// event has arrived, now close the watchers and the backend
+	p.backend.SetReadError(trace.ConnectionProblem(nil, "backend is unavailable"))
+	p.eventsS.closeWatchers()
+
+	// wait for the watcher to fail
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, WatcherFailed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	// backend is out, so no service is available
+	_, err := p.cache.GetCertAuthority(ca.GetID(), false)
+	fixtures.ExpectConnectionProblem(c, err)
+
+	// add modification and expect the resource to recover
+	ca.SetRoleMap(services.RoleMap{services.RoleMapping{Remote: "test", Local: []string{"local-test"}}})
+	c.Assert(p.trustS.UpsertCertAuthority(ca), check.IsNil)
+
+	// now, recover the backend and make sure the
+	// service is back
+	p.backend.SetReadError(nil)
+
+	// wait for watcher to restart
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, WatcherStarted)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	// new value is available now
+	out, err := p.cache.GetCertAuthority(ca.GetID(), false)
+	c.Assert(err, check.IsNil)
+	ca.SetResourceID(out.GetResourceID())
+	services.RemoveCASecrets(ca)
+	fixtures.DeepCompare(c, ca, out)
+}
+
+// TestPreferRecent makes sure init proceeds
+// with "prefer recent" cache strategy
+// even if the backend is unavailable
+// then recovers against failures and serves data during failures
+func (s *CacheSuite) TestPreferRecent(c *check.C) {
+	p := s.newPackWithoutCache(c, ForAuth)
+	defer p.Close()
+
+	p.backend.SetReadError(trace.ConnectionProblem(nil, "backend is out"))
+	var err error
+	p.cache, err = New(ForAuth(Config{
+		Context:       context.TODO(),
+		Backend:       p.cacheBackend,
+		Events:        p.eventsS,
+		ClusterConfig: p.clusterConfigS,
+		Provisioner:   p.provisionerS,
+		Trust:         p.trustS,
+		Users:         p.usersS,
+		Access:        p.accessS,
+		Presence:      p.presenceS,
+		RetryPeriod:   200 * time.Millisecond,
+		EventsC:       p.eventsC,
+		PreferRecent: PreferRecent{
+			Enabled: true,
+		},
+	}))
+	c.Assert(err, check.IsNil)
+
+	cas, err := p.cache.GetCertAuthorities(services.UserCA, false)
+	c.Assert(err, check.IsNil)
+	c.Assert(cas, check.HasLen, 0)
+
+	ca := suite.NewTestCA(services.UserCA, "example.com")
+	c.Assert(p.trustS.UpsertCertAuthority(ca), check.IsNil)
+	p.backend.SetReadError(nil)
+
+	// wait for watcher to restart
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, WatcherStarted)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	out, err := p.cache.GetCertAuthority(ca.GetID(), false)
+	c.Assert(err, check.IsNil)
+	ca.SetResourceID(out.GetResourceID())
+	ca.SetExpiry(out.Expiry())
+	services.RemoveCASecrets(ca)
+	fixtures.DeepCompare(c, ca, out)
+
+	// fail again, make sure last recent data is still served
+	// on errors
+	p.backend.SetReadError(trace.ConnectionProblem(nil, "backend is unavailable"))
+	p.eventsS.closeWatchers()
+	// wait for the watcher to fail
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, WatcherFailed)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	// backend is out, but old value is available
+	out, err = p.cache.GetCertAuthority(ca.GetID(), false)
+	c.Assert(err, check.IsNil)
+	fixtures.DeepCompare(c, ca, out)
+
+	// add modification and expect the resource to recover
+	ca.SetRoleMap(services.RoleMap{services.RoleMapping{Remote: "test", Local: []string{"local-test"}}})
+	c.Assert(p.trustS.UpsertCertAuthority(ca), check.IsNil)
+
+	// now, recover the backend and make sure the
+	// service is back and the new value has propagated
+	p.backend.SetReadError(nil)
+
+	// wait for watcher to restart
+	select {
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, WatcherStarted)
+	case <-time.After(time.Second):
+		c.Fatalf("timeout waiting for event")
+	}
+
+	// new value is available now
+	out, err = p.cache.GetCertAuthority(ca.GetID(), false)
+	c.Assert(err, check.IsNil)
+	ca.SetExpiry(out.Expiry())
+	ca.SetResourceID(out.GetResourceID())
+	fixtures.DeepCompare(c, ca, out)
+}
+
 // TestRecovery tests error recovery scenario
 func (s *CacheSuite) TestRecovery(c *check.C) {
 	p := s.newPackForAuth(c)
@@ -189,7 +366,8 @@ func (s *CacheSuite) TestRecovery(c *check.C) {
 	c.Assert(p.trustS.UpsertCertAuthority(ca), check.IsNil)
 
 	select {
-	case <-p.eventsC:
+	case event := <-p.eventsC:
+		c.Assert(event.Type, check.Equals, EventProcessed)
 	case <-time.After(time.Second):
 		c.Fatalf("timeout waiting for event")
 	}

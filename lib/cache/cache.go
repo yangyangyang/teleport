@@ -188,6 +188,9 @@ func (c *Config) CheckAndSetDefaults() error {
 	if !c.OnlyRecent.Enabled && !c.PreferRecent.Enabled {
 		c.OnlyRecent.Enabled = true
 	}
+	if err := c.PreferRecent.CheckAndSetDefaults(); err != nil {
+		return trace.Wrap(err)
+	}
 	if c.Context == nil {
 		c.Context = context.Background()
 	}
@@ -217,6 +220,8 @@ const (
 	EventProcessed = "event_processed"
 	// WatcherStarted is emitted when a new event watcher is started
 	WatcherStarted = "watcher_started"
+	// WatcherFailed is emitted when event watcher has failed
+	WatcherFailed = "watcher_failed"
 )
 
 // New creates a new instance of Cache
@@ -279,9 +284,24 @@ func (c *Cache) update() {
 		}
 		err := c.fetchAndWatch()
 		if err != nil {
+			c.setCacheState(err)
 			c.Warningf("Re-init the cache on error: %v.", err)
 		}
 	}
+}
+
+// setCacheState for "only recent" cache behavior will erase
+// the cache and set error mode to refuse to serve stale data,
+// otherwise does nothing
+func (c *Cache) setCacheState(err error) error {
+	if !c.OnlyRecent.Enabled {
+		return err
+	}
+	if err := c.eraseAll(); err != nil {
+		c.Warningf("Failed to erase the data: %v.", err)
+	}
+	c.wrapper.SetReadError(trace.ConnectionProblem(err, "cache is unavailable"))
+	return err
 }
 
 // setTTL overrides TTL supplied by the resource
@@ -351,6 +371,7 @@ func (c *Cache) notify(event CacheEvent) {
 func (c *Cache) fetchAndWatch() error {
 	watcher, err := c.Events.NewWatcher(c.ctx, services.Watch{Kinds: c.watchKinds()})
 	if err != nil {
+		c.notify(CacheEvent{Type: WatcherFailed})
 		return trace.Wrap(err)
 	}
 	defer watcher.Close()
@@ -383,13 +404,6 @@ func (c *Cache) fetchAndWatch() error {
 	}
 	err = c.fetch()
 	if err != nil {
-		// for "only recent" cache behavior refuse to serve stale data
-		if c.OnlyRecent.Enabled {
-			if err := c.eraseAll(); err != nil {
-				c.Warningf("Failed to erase the data: %v", err)
-			}
-			c.wrapper.SetReadError(trace.ConnectionProblem(err, "cache is unavailable"))
-		}
 		return trace.Wrap(err)
 	}
 	c.wrapper.SetReadError(nil)
