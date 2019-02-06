@@ -120,11 +120,11 @@ func (a *AuthServer) createSAMLUser(connector services.SAMLConnector, assertionI
 		Metadata: services.Metadata{
 			Name:      assertionInfo.NameID,
 			Namespace: defaults.Namespace,
+			Expires:   expiresAt,
 		},
 		Spec: services.UserSpecV2{
 			Roles:          roles,
 			Traits:         traits,
-			Expires:        expiresAt,
 			SAMLIdentities: []services.ExternalIdentity{{ConnectorID: connector.GetName(), Username: assertionInfo.NameID}},
 			CreatedBy: services.CreatedBy{
 				User: services.UserRef{Name: "system"},

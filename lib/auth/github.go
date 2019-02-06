@@ -229,11 +229,11 @@ func (s *AuthServer) createGithubUser(connector services.GithubConnector, claims
 		Metadata: services.Metadata{
 			Name:      claims.Username,
 			Namespace: defaults.Namespace,
+			Expires:   s.clock.Now().UTC().Add(defaults.OAuth2TTL),
 		},
 		Spec: services.UserSpecV2{
-			Roles:   modules.GetModules().RolesFromLogins(logins),
-			Traits:  modules.GetModules().TraitsFromLogins(logins, kubeGroups),
-			Expires: s.clock.Now().UTC().Add(defaults.OAuth2TTL),
+			Roles:  modules.GetModules().RolesFromLogins(logins),
+			Traits: modules.GetModules().TraitsFromLogins(logins, kubeGroups),
 			GithubIdentities: []services.ExternalIdentity{{
 				ConnectorID: connector.GetName(),
 				Username:    claims.Username,
