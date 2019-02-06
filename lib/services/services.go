@@ -18,9 +18,11 @@ package services
 
 // Services collects all services
 type Services interface {
-	Identity
+	UsersService
 	Provisioner
 	Trust
 	Events
 	ClusterConfiguration
+	Access
+	Presence
 }

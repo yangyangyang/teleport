@@ -73,6 +73,10 @@ func ForNode(cfg Config) Config {
 	return cfg
 }
 
+// SetupConfigFn is a function that sets up configuration
+// for cache
+type SetupConfigFn func(c Config) Config
+
 // Cache implements auth.AccessPoint interface and remembers
 // the previously returned upstream value for each API call.
 //

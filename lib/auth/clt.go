@@ -2556,6 +2556,9 @@ type IdentityService interface {
 	// CreateSignupToken creates one time token for creating account for the user
 	// For each token it creates username and OTP key
 	CreateSignupToken(user services.UserV1, ttl time.Duration) (string, error)
+
+	// DeleteAllUsers deletes all users
+	DeleteAllUsers() error
 }
 
 // ProvisioningService is a service in control
@@ -2570,6 +2573,12 @@ type ProvisioningService interface {
 	// DeleteToken deletes a given provisioning token on the auth server (CA). It
 	// could be a user token or a machine token
 	DeleteToken(token string) error
+
+	// DeleteAllTokens deletes all provisioning tokens
+	DeleteAllTokens() error
+
+	// UpsertToken adds provisioning tokens for the auth server
+	UpsertToken(services.ProvisionToken) error
 
 	// RegisterUsingToken calls the auth service API to register a new node via registration token
 	// which has been previously issued via GenerateToken

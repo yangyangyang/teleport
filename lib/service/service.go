@@ -62,7 +62,6 @@ import (
 	"github.com/gravitational/teleport/lib/session"
 	"github.com/gravitational/teleport/lib/srv"
 	"github.com/gravitational/teleport/lib/srv/regular"
-	"github.com/gravitational/teleport/lib/state"
 	"github.com/gravitational/teleport/lib/system"
 	"github.com/gravitational/teleport/lib/utils"
 	"github.com/gravitational/teleport/lib/web"
@@ -953,9 +952,15 @@ func (process *TeleportProcess) initAuthService() error {
 		AuditLog:       process.auditLog,
 	}
 
-	authCache, err := process.newAccessCache(authServer.AuthServices, []string{"auth"})
-	if err != nil {
-		return trace.Wrap(err)
+	var authCache auth.AuthCache
+	if !process.Config.CachePolicy.Enabled {
+		cache, err := process.newAccessCache(authServer.AuthServices, cache.ForAuth, []string{"auth"})
+		if err != nil {
+			return trace.Wrap(err)
+		}
+		authCache = cache
+	} else {
+		authCache = authServer.AuthServices
 	}
 	authServer.SetCache(authCache)
 
@@ -1146,11 +1151,7 @@ func (process *TeleportProcess) onExit(serviceName string, callback func(interfa
 }
 
 // newAccessCache returns new local cache access point
-func (process *TeleportProcess) newAccessCache(clt services.Services, cacheName []string) (auth.AuthCache, error) {
-	// if caching is disabled, return access point
-	if !process.Config.CachePolicy.Enabled {
-		return clt, nil
-	}
+func (process *TeleportProcess) newAccessCache(clt services.Services, setupConfig cache.SetupConfigFn, cacheName []string) (*cache.Cache, error) {
 	path := filepath.Join(append([]string{process.Config.DataDir, "cache"}, cacheName...)...)
 	if err := os.MkdirAll(path, teleport.SharedDirMode); err != nil {
 		return nil, trace.ConvertSystemError(err)
@@ -1159,37 +1160,39 @@ func (process *TeleportProcess) newAccessCache(clt services.Services, cacheName 
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return cache.New(cache.Config{
+	return cache.New(setupConfig(cache.Config{
 		Context:       process.ExitContext(),
 		Backend:       cacheBackend,
 		Events:        clt,
 		ClusterConfig: clt,
 		Provisioner:   clt,
 		Trust:         clt,
-	})
+		Users:         clt,
+		Access:        clt,
+		Presence:      clt,
+		PreferRecent: cache.PreferRecent{
+			NeverExpires: process.Config.CachePolicy.NeverExpires,
+			MaxTTL:       process.Config.CachePolicy.TTL,
+		},
+	}))
 }
 
-// newLocalCache returns new local cache access point
-func (process *TeleportProcess) newLocalCache(clt auth.ClientI, cacheName []string) (auth.AccessPoint, error) {
+// newAccessPointCache returns new instance of access point configured for proxy
+func (process *TeleportProcess) newLocalCacheForProxy(clt auth.ClientI, cacheName []string) (auth.AccessPoint, error) {
+	return process.newLocalCache(clt, cache.ForProxy, cacheName)
+}
+
+// newAccessPointCache returns new instance of access point
+func (process *TeleportProcess) newLocalCache(clt auth.ClientI, setupConfig cache.SetupConfigFn, cacheName []string) (auth.AccessPoint, error) {
 	// if caching is disabled, return access point
 	if !process.Config.CachePolicy.Enabled {
 		return clt, nil
 	}
-	path := filepath.Join(append([]string{process.Config.DataDir, "cache"}, cacheName...)...)
-	if err := os.MkdirAll(path, teleport.SharedDirMode); err != nil {
-		return nil, trace.ConvertSystemError(err)
-	}
-	cacheBackend, err := lite.NewWithConfig(process.ExitContext(), lite.Config{Path: path, EventsOff: true})
+	cache, err := process.newAccessCache(clt, setupConfig, cacheName)
 	if err != nil {
 		return nil, trace.Wrap(err)
 	}
-	return state.NewCachingAuthClient(state.Config{
-		AccessPoint:    clt,
-		Backend:        cacheBackend,
-		NeverExpires:   process.Config.CachePolicy.NeverExpires,
-		RecentCacheTTL: process.Config.CachePolicy.GetRecentTTL(),
-		CacheMaxTTL:    process.Config.CachePolicy.TTL,
-	})
+	return auth.NewWrapper(clt, cache), nil
 }
 
 func (process *TeleportProcess) getRotation(role teleport.Role) (*services.Rotation, error) {
@@ -1241,7 +1244,7 @@ func (process *TeleportProcess) initSSH() error {
 			return trace.Wrap(err)
 		}
 
-		authClient, err := process.newLocalCache(conn.Client, []string{"node"})
+		authClient, err := process.newLocalCache(conn.Client, cache.ForNode, []string{"node"})
 		if err != nil {
 			return trace.Wrap(err)
 		}
@@ -1728,7 +1731,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 	}
 
 	// make a caching auth client for the auth server:
-	accessPoint, err := process.newLocalCache(conn.Client, []string{"proxy"})
+	accessPoint, err := process.newLocalCacheForProxy(conn.Client, []string{"proxy"})
 	if err != nil {
 		return trace.Wrap(err)
 	}
@@ -1773,7 +1776,7 @@ func (process *TeleportProcess) initProxyEndpoint(conn *Connector) error {
 				HostSigners:           []ssh.Signer{conn.ServerIdentity.KeySigner},
 				LocalAuthClient:       conn.Client,
 				LocalAccessPoint:      accessPoint,
-				NewCachingAccessPoint: process.newLocalCache,
+				NewCachingAccessPoint: process.newLocalCacheForProxy,
 				Limiter:               reverseTunnelLimiter,
 				DirectClusters: []reversetunnel.DirectCluster{
 					{

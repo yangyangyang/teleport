@@ -98,7 +98,7 @@ func (s *CacheSuite) newPackForNode(c *check.C) *testPack {
 }
 
 // newPackWithoutCache returns a new test pack without creating cache
-func (s *CacheSuite) newPackWithoutCache(c *check.C, setupConfig func(c Config) Config) *testPack {
+func (s *CacheSuite) newPackWithoutCache(c *check.C, setupConfig SetupConfigFn) *testPack {
 	p := &testPack{
 		dataDir: c.MkDir(),
 		clock:   s.clock,
